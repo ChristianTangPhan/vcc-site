@@ -1,3 +1,4 @@
+/* ===== Global ===== */
 * { box-sizing: border-box; }
 
 body {
@@ -8,6 +9,13 @@ body {
   line-height: 1.5;
 }
 
+a { color: #3b4a6b; }
+.muted { color: #777; }
+
+section { padding: 32px 16px; max-width: 700px; margin: 0 auto; }
+section h2 { margin-top: 0; }
+
+/* ===== 1. Nav ===== */
 .nav {
   position: sticky;
   top: 0;
@@ -19,11 +27,45 @@ body {
   gap: 6px;
   z-index: 10;
 }
-.nav-title { font-weight: 700; font-size: 1.1rem; }
+.nav-title {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #222;
+  text-decoration: none;
+}
 .nav nav { display: flex; gap: 16px; overflow-x: auto; }
-.nav a { color: #555; text-decoration: none; font-size: 0.95rem; }
+.nav a { color: #555; text-decoration: none; font-size: 0.95rem; white-space: nowrap; }
+.nav a.active { color: #3b4a6b; font-weight: 700; }
 
+/* ===== 2. Announcement ===== */
+.announcement {
+  background: #fff3c4;
+  border-bottom: 1px solid #e6c84f;
+  color: #5c4a00;
+  padding: 12px 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.announcement p {
+  margin: 0;
+  flex: 1;
+  font-weight: 600;
+  white-space: pre-line;
+}
+.announcement button {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+/* ===== 3. Hero ===== */
 .hero {
+  max-width: none;
   background: #3b4a6b;
   color: #fff;
   text-align: center;
@@ -31,9 +73,44 @@ body {
 }
 .hero h1 { margin: 0 0 8px; font-size: 1.8rem; }
 
-section { padding: 32px 16px; max-width: 700px; margin: 0 auto; }
-section h2 { margin-top: 0; }
+/* ===== 4. Today (also defines calendar cards, reused on the calendar page) ===== */
+.cal-card {
+  background: #eef0f5;
+  border-left: 4px solid #3b4a6b;
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin-top: 6px;
+}
+.cal-name { font-weight: 600; font-size: 0.95rem; }
+.cal-location { font-size: 0.8rem; color: #666; font-style: italic; }
+.cal-time { font-size: 0.8rem; color: #444; }
 
+.cal-card.cancelled {
+  background: #f3f3f3;
+  border-left-color: #bbb;
+}
+.cal-card.cancelled .cal-name {
+  text-decoration: line-through;
+  color: #888;
+}
+.cal-cancelled {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #b42318;
+}
+
+#today .cal-card { padding: 10px 12px; margin-bottom: 8px; }
+#today .cal-name { font-size: 1.05rem; }
+
+/* ===== 5. View full calendar link ===== */
+.section-link {
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.today-link { display: inline-block; margin-top: 8px; }
+
+/* ===== 6. Service Times (cards) ===== */
 .card {
   background: #fff;
   border: 1px solid #e5e2dc;
@@ -44,12 +121,146 @@ section h2 { margin-top: 0; }
 .card h3 { margin: 0 0 4px; }
 .card p { margin: 2px 0; }
 
-.muted { color: #777; }
-a { color: #3b4a6b; }
+/* ===== 7. Pastors (swipeable row) ===== */
+.pastor-row {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;   /* cards snap into place */
+  padding-bottom: 8px;
+  scrollbar-width: thin;
+}
+.pastor-row.single { justify-content: center; }
 
+.pastor-card {
+  flex: 0 0 80%;                   /* next card peeks in on phones */
+  max-width: 280px;
+  scroll-snap-align: center;
+  margin-bottom: 0;
+  text-align: center;
+}
+
+.pastor-photo {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  margin: 0 auto 12px;
+}
+
+.swipe-hint {
+  font-size: 0.85rem;
+  margin: 6px 0 0;
+  text-align: center;
+}
+
+/* ===== 8. About ===== */
+.about-text { white-space: pre-line; }
+
+/* ===== 9. Footer ===== */
 footer {
   text-align: center;
   padding: 32px 16px;
   border-top: 1px solid #ddd;
   font-size: 0.9rem;
+}
+footer p { margin: 4px 0; }
+
+/* ===================================================== */
+/* ===== Calendar page (/calendar) ===== */
+/* ===================================================== */
+#calendar { max-width: 1100px; padding-top: 24px; }
+
+/* Toolbar: ‹ Today ›  |  title  |  Week / Month */
+.cal-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.cal-title { font-weight: 700; }
+.cal-nav, .cal-views { display: flex; gap: 4px; }
+
+.cal-toolbar button {
+  background: #fff;
+  border: 1px solid #d5d2cc;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font: inherit;
+  color: #222;
+  cursor: pointer;
+}
+.cal-views button.active {
+  background: #3b4a6b;
+  border-color: #3b4a6b;
+  color: #fff;
+}
+
+/* Month weekday labels (Sun Mon Tue...) */
+.cal-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  text-align: center;
+  font-size: 0.8rem;
+  color: #777;
+  margin-bottom: 4px;
+}
+
+/* Grid of days */
+.cal-grid { display: grid; gap: 8px; }
+
+/* Week: stacked on phone, 7 columns on desktop */
+.cal-grid.week { grid-template-columns: 1fr; }
+@media (min-width: 768px) {
+  .cal-grid.week { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+}
+
+/* Month: always 7 columns */
+.cal-grid.month {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+
+/* Day boxes */
+.day {
+  background: #fff;
+  border: 1px solid #e5e2dc;
+  border-radius: 12px;
+  padding: 10px;
+}
+.day.today { border: 2px solid #3b4a6b; }
+.day.outside { opacity: 0.45; }
+.day-header { font-weight: 700; margin-bottom: 4px; }
+.day-empty { margin: 0; }
+
+.cal-grid.week .day.today .day-header::after {
+  content: ' · Today';
+  font-weight: 400;
+  color: #3b4a6b;
+  font-size: 0.85rem;
+}
+
+/* Month view: smaller boxes and cards */
+.cal-grid.month .day {
+  min-height: 80px;
+  padding: 4px;
+  border-radius: 8px;
+}
+.cal-grid.month .day-header { font-size: 0.85rem; margin-bottom: 2px; }
+.cal-grid.month .day.today .day-header { color: #3b4a6b; }
+
+.cal-grid.month .cal-card {
+  padding: 2px 4px;
+  margin-top: 3px;
+  border-left-width: 3px;
+}
+.cal-grid.month .cal-name {
+  font-size: 0.7rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
