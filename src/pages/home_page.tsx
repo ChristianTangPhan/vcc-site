@@ -71,7 +71,7 @@ export function HomePage({
       {/* ===== Hero ===== */}
       <section className="hero">
         <Editable canEdit={canEditInfo} editor={editInfo(heroFields)}>
-          <h1>{info?.i_name && `Welcome to ${info.i_name}`}</h1>
+          <h1>{info?.i_name}</h1>
           <p>{info?.i_tagline}</p>
         </Editable>
       </section>
