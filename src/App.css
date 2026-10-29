@@ -1,3 +1,12 @@
+/* ===== Colors (change these to re-theme the whole site) ===== */
+:root {
+  --brand: #c96442;        /* church orange: hero, buttons, borders */
+  --brand-dark: #a34d30;   /* darker orange for text and links (easier to read) */
+  --brand-tint: #fbeee8;   /* light orange: weekly series cards */
+  --event: #3b4a6b;        /* navy: one-time events, so they stand apart */
+  --event-tint: #eef0f5;   /* light navy: event card background */
+}
+
 /* ===== Global ===== */
 * { box-sizing: border-box; }
 
@@ -9,7 +18,7 @@ body {
   line-height: 1.5;
 }
 
-a { color: #3b4a6b; }
+a { color: var(--brand-dark); }
 .muted { color: #777; }
 
 section { padding: 32px 16px; max-width: 700px; margin: 0 auto; }
@@ -36,7 +45,7 @@ section { scroll-margin-top: 90px; }  /* sticky nav doesn't cover titles when ju
 }
 .nav nav { display: flex; gap: 16px; overflow-x: auto; }
 .nav a { color: #555; text-decoration: none; font-size: 0.95rem; white-space: nowrap; }
-.nav a.active { color: #3b4a6b; font-weight: 700; }
+.nav a.active { color: var(--brand-dark); font-weight: 700; }
 
 /* ===== 2. Announcement ===== */
 .announcement {
@@ -67,7 +76,7 @@ section { scroll-margin-top: 90px; }  /* sticky nav doesn't cover titles when ju
 /* ===== 3. Hero ===== */
 .hero {
   max-width: none;
-  background: #3b4a6b;
+  background: var(--brand);
   color: #fff;
   text-align: center;
   padding: 64px 16px;
@@ -76,8 +85,8 @@ section { scroll-margin-top: 90px; }  /* sticky nav doesn't cover titles when ju
 
 /* ===== 4. Today (also defines calendar cards, reused on the calendar page) ===== */
 .cal-card {
-  background: #eef0f5;
-  border-left: 4px solid #3b4a6b;
+  background: var(--brand-tint);
+  border-left: 4px solid var(--brand);
   border-radius: 6px;
   padding: 6px 8px;
   margin-top: 6px;
@@ -93,8 +102,8 @@ section { scroll-margin-top: 90px; }  /* sticky nav doesn't cover titles when ju
 
 /* Events = gold, services = navy */
 .cal-card.event {
-  background: #fbf1e1;
-  border-left-color: #c58b2b;
+  background: var(--event-tint);
+  border-left-color: var(--event);
 }
 
 /* Cancelled dates */
@@ -231,8 +240,8 @@ footer p { margin: 4px 0; }
   cursor: pointer;
 }
 .cal-views button.active {
-  background: #3b4a6b;
-  border-color: #3b4a6b;
+  background: var(--brand);
+  border-color: var(--brand-dark);
   color: #fff;
 }
 
@@ -270,7 +279,7 @@ footer p { margin: 4px 0; }
   border-radius: 12px;
   padding: 10px;
 }
-.day.today { border: 2px solid #3b4a6b; }
+.day.today { border: 2px solid var(--brand); }
 .day.outside { opacity: 0.45; }
 .day-header { font-weight: 700; margin-bottom: 4px; }
 .day-empty { margin: 0; font-size: 0.9rem; font-style: italic; }
@@ -284,7 +293,7 @@ footer p { margin: 4px 0; }
 .cal-grid.week .day.today .day-header::after {
   content: ' · Today';
   font-weight: 400;
-  color: #3b4a6b;
+  color: var(--brand-dark);
   font-size: 0.85rem;
 }
 
@@ -298,7 +307,7 @@ footer p { margin: 4px 0; }
   border-radius: 50%;
   border: 1px solid #d5d2cc;
   background: #fff;
-  color: #3b4a6b;
+  color: var(--brand-dark);
   font-weight: 700;
   line-height: 1;
   cursor: pointer;
@@ -312,7 +321,7 @@ footer p { margin: 4px 0; }
   border-radius: 8px;
 }
 .cal-grid.month .day-header { font-size: 0.85rem; margin-bottom: 2px; }
-.cal-grid.month .day.today .day-header { color: #3b4a6b; }
+.cal-grid.month .day.today .day-header { color: var(--brand-dark); }
 .cal-grid.month .day-add { width: 18px; height: 18px; top: 3px; right: 3px; font-size: 0.75rem; }
 
 .cal-grid.month .cal-card {
@@ -448,7 +457,7 @@ footer p { margin: 4px 0; }
   background: #fff;
   color: #222;
   text-align: left;
-  border: 2px dashed #3b4a6b;
+  border: 2px dashed var(--brand);
   border-radius: 12px;
   padding: 16px;
   max-width: 700px;
@@ -492,7 +501,7 @@ footer p { margin: 4px 0; }
 /* Buttons */
 .admin-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .admin-actions button {
-  background: #3b4a6b;
+  background: var(--brand);
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -523,7 +532,7 @@ footer p { margin: 4px 0; }
   padding: 12px;
   font: inherit;
   font-weight: 600;
-  color: #3b4a6b;
+  color: var(--brand-dark);
   cursor: pointer;
   margin-top: 4px;
 }
@@ -541,16 +550,16 @@ footer p { margin: 4px 0; }
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  background: #fbf1e1;
-  border-left: 4px solid #c58b2b;
+  background: var(--event-tint);
+  border-left: 4px solid var(--event);
   border-radius: 6px;
   padding: 8px 10px;
 }
 .preset-item-actions { display: flex; gap: 12px; }
-.link-btn.edit { color: #3b4a6b; }
+.link-btn.edit { color: var(--brand-dark); }
 
 .preset-form {
-  border: 2px dashed #c58b2b;
+  border: 2px dashed var(--event);
   border-radius: 10px;
   padding: 12px;
 }
@@ -579,7 +588,7 @@ footer p { margin: 4px 0; }
   padding: 0;
 }
 .quick-btn.restore {
-  color: #3b4a6b;
+  color: var(--brand-dark);
   border-color: #d5d2cc;
 }
 
