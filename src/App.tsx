@@ -175,19 +175,6 @@ function DayCell({
   )
 }
 
-// Home page: just this week, no controls
-function WeekStrip({ getItems }: { getItems: GetItems }) {
-  const days = getViewDays(startOfDay(new Date()), 'week')
-
-  return (
-    <div className="cal-grid week">
-      {days.map((d) => (
-        <DayCell key={toKey(d)} date={d} items={getItems(d)} view="week" />
-      ))}
-    </div>
-  )
-}
-
 // Calendar page: week/month toggle + navigation
 function Calendar({ getItems }: { getItems: GetItems }) {
   const [view, setView] = useState<View>('week')
