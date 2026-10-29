@@ -15,14 +15,15 @@ async function keysMatch(given: string, expected: string) {
   return diff === 0
 }
 
+// Runs before every /api/admin/* request: rejects anything without the right key
 export async function onRequest(context: {
   request: Request
   env: Env
   next: () => Promise<Response>
 }) {
   const auth = context.request.headers.get('Authorization') ?? ''
-  const given = auth.replace(/^Bearer /, '')
-  const expected = context.env.ADMIN_KEY
+  const given = auth.replace(/^Bearer /, '').trim()
+  const expected = context.env.ADMIN_KEY?.trim() // ignore stray spaces/newlines from pasting
 
   if (!expected || !given || !(await keysMatch(given, expected))) {
     return new Response('Unauthorized', { status: 401 })

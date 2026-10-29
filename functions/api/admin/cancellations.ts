@@ -13,13 +13,13 @@ function errorResponse(err: unknown) {
   return new Response(msg, { status: 400 })
 }
 
-// POST = cancel one date of a service
+// POST = cancel one date of a series
 export async function onRequestPost(context: { request: Request; env: Env }) {
   const b = (await context.request.json()) as Body
   if (!b.s_id || !b.sc_date) return new Response('Missing s_id or sc_date', { status: 400 })
   const sql = neon(context.env.DATABASE_URL)
   try {
-    await sql`SELECT cancel_service_date(${b.s_id}::bigint, ${b.sc_date}::date, ${b.sc_reason ?? null})`
+    await sql`SELECT cancel_series_date(${b.s_id}::bigint, ${b.sc_date}::date, ${b.sc_reason ?? null})`
     return Response.json({ ok: true })
   } catch (err) {
     return errorResponse(err)
@@ -34,7 +34,7 @@ export async function onRequestDelete(context: { request: Request; env: Env }) {
   if (!sId || !date) return new Response('Missing s_id or date', { status: 400 })
   const sql = neon(context.env.DATABASE_URL)
   try {
-    await sql`SELECT restore_service_date(${sId}::bigint, ${date}::date)`
+    await sql`SELECT restore_series_date(${sId}::bigint, ${date}::date)`
     return Response.json({ ok: true })
   } catch (err) {
     return errorResponse(err)
