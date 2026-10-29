@@ -3,8 +3,8 @@
   --brand: #c96442;        /* church orange: hero, buttons, borders */
   --brand-dark: #a34d30;   /* darker orange for text and links (easier to read) */
   --brand-tint: #fbeee8;   /* light orange: weekly series cards */
-  --event: #3b4a6b;        /* navy: one-time events, so they stand apart */
-  --event-tint: #eef0f5;   /* light navy: event card background */
+  --event: #c58b2b;        /* gold: one-time events */
+  --event-tint: #fbf1e1;   /* light gold: event card background */
 }
 
 /* ===== Global ===== */
