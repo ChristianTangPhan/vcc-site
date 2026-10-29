@@ -1,53 +1,56 @@
 import { useState } from 'react'
-import type { Admin, CalItem, ChurchInfo, EditInfo, GetItems, Pastor, Preset, Service } from '../types'
+import type { Admin, CalItem, ChurchInfo, EditInfo, GetItems, Pastor, Preset, Series } from '../types'
 import { dayNames, formatTime, startOfDay, toKey } from '../lib/dates'
 import { finishAdmin, sendAdmin } from '../lib/admin'
 import { aboutFields, heroFields } from '../lib/info_fields'
 import { Editable } from '../components/editable'
 import { CalCard } from '../components/cal_card'
-import { ServiceEditor } from '../editors/service_editor'
+import { SeriesEditor } from '../editors/series_editor'
 import { PastorEditor } from '../editors/pastor_editor'
 import { EventEditor } from '../editors/event_editor'
 
 export function HomePage({
   info,
-  services,
+  series,
   pastors,
+  presets,
   getItems,
   admin,
   canEditInfo,
   editInfo,
   reloadPastors,
-  reloadServices,
+  reloadSeries,
   reloadCancellations,
   reloadEvents,
-  presets,
   reloadPresets,
 }: {
   info: ChurchInfo | null
-  services: Service[]
+  series: Series[]
   pastors: Pastor[]
+  presets: Preset[]
   getItems: GetItems
   admin: Admin | null
   canEditInfo: boolean
   editInfo: EditInfo
   reloadPastors: () => void
-  reloadServices: () => void
+  reloadSeries: () => void
   reloadCancellations: () => void
   reloadEvents: () => void
-  presets: Preset[]
   reloadPresets: () => void
 }) {
   const todayItems = getItems(startOfDay(new Date()))
-  const [addingService, setAddingService] = useState(false)
-  const [addingPastor,  setAddingPastor]  = useState(false)
-  const [addingEvent,   setAddingEvent]   = useState(false)
+  const [addingSeries, setAddingSeries] = useState(false)
+  const [addingPastor, setAddingPastor] = useState(false)
+  const [addingEvent, setAddingEvent] = useState(false)
 
-  // − on a Today card: cancel/restore a service date, or delete an event
+  // Visitors only see series marked "show on home"; editors see all (to edit the hidden ones)
+  const listedSeries = admin ? series : series.filter((s) => s.s_show_on_home)
+
+  // − on a Today card: cancel/restore a series date, or delete an event
   async function quickRemove(it: CalItem) {
     if (!admin) return
 
-    if (it.kind === 'service') {
+    if (it.kind === 'series') {
       const res = it.cancelled
         ? await sendAdmin(admin, `/api/admin/cancellations?s_id=${it.refId}&date=${it.dateKey}`, 'DELETE')
         : await sendAdmin(admin, '/api/admin/cancellations', 'POST', {
@@ -83,7 +86,8 @@ export function HomePage({
           <p className="muted">No events today.</p>
         ) : (
           todayItems.map((it) => {
-            const restoring = it.kind === 'service' && it.cancelled
+            const restoring = it.kind === 'series' && it.cancelled
+            const label = restoring ? 'Restore' : it.kind === 'series' ? 'Cancel today' : 'Delete event'
             return (
               <div className="today-item" key={it.id}>
                 <CalCard item={it} />
@@ -92,8 +96,8 @@ export function HomePage({
                     type="button"
                     className={`quick-btn ${restoring ? 'restore' : ''}`}
                     onClick={() => quickRemove(it)}
-                    aria-label={restoring ? 'Restore' : it.kind === 'service' ? 'Cancel today' : 'Delete event'}
-                    title={restoring ? 'Restore' : it.kind === 'service' ? 'Cancel today' : 'Delete event'}
+                    aria-label={label}
+                    title={label}
                   >
                     {restoring ? '↺' : '−'}
                   </button>
@@ -102,12 +106,12 @@ export function HomePage({
             )
           })
         )}
-        <a href="/calendar" className="section-link today-link">View full calendar →</a>
+
         {admin &&
           (addingEvent ? (
             <EventEditor
               initialDate={toKey(new Date())}
-              services={services}
+              series={series}
               presets={presets}
               admin={admin}
               onSaved={() => { reloadEvents(); reloadCancellations() }}
@@ -119,34 +123,42 @@ export function HomePage({
               + Add event today
             </button>
           ))}
+
+        <a href="/calendar" className="section-link today-link">View full calendar →</a>
       </section>
 
-      {/* ===== Service Times ===== */}
+      {/* ===== Service Times (series marked "show on home") ===== */}
       <section id="services">
         <h2>Service Times</h2>
-        {services.map((s) => (
+        {admin && (
+          <p className="muted small-note">
+            Editors see every weekly series here. Dimmed ones are hidden from visitors.
+          </p>
+        )}
+        {listedSeries.map((s) => (
           <Editable
             key={s.s_id}
             canEdit={!!admin}
             editor={(close) =>
-              admin && <ServiceEditor service={s} admin={admin} onSaved={reloadServices} onClose={close} />
+              admin && <SeriesEditor series={s} admin={admin} onSaved={reloadSeries} onClose={close} />
             }
           >
-            <div className="card">
+            <div className={`card ${s.s_show_on_home ? '' : 'hidden-series'}`}>
               <h3>{s.s_name}</h3>
               <p>{dayNames[s.s_day - 1]} · {formatTime(s.s_start)} – {formatTime(s.s_end)}</p>
               <p className="muted">{s.s_location}</p>
               {s.s_description && <p>{s.s_description}</p>}
+              {!s.s_show_on_home && <p className="hidden-tag">Not shown on home (calendar only)</p>}
             </div>
           </Editable>
         ))}
 
         {admin &&
-          (addingService ? (
-            <ServiceEditor admin={admin} onSaved={reloadServices} onClose={() => setAddingService(false)} />
+          (addingSeries ? (
+            <SeriesEditor admin={admin} onSaved={reloadSeries} onClose={() => setAddingSeries(false)} />
           ) : (
-            <button type="button" className="add-btn" onClick={() => setAddingService(true)}>
-              + Add service
+            <button type="button" className="add-btn" onClick={() => setAddingSeries(true)}>
+              + Add weekly series
             </button>
           ))}
       </section>

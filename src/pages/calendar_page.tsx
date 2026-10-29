@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Admin, CalItem, EventRow, GetItems, Preset, Service } from '../types'
+import type { Admin, CalItem, EventRow, GetItems, Preset, Series } from '../types'
 import { formatDateKey, toKey } from '../lib/dates'
 import { Calendar } from '../components/calendar'
 import { CalCard } from '../components/cal_card'
@@ -9,19 +9,18 @@ import { OccurrenceEditor } from '../editors/occurrence_editor'
 import { PresetManager } from '../editors/preset_manager'
 
 // What's open in the popup
-
-  type Selection =
+type Selection =
   | { kind: 'view'; item: CalItem }      // visitor looking at details
   | { kind: 'new'; dateKey: string }     // editor adding an event
   | { kind: 'event'; event: EventRow }   // editor editing an event
-  | { kind: 'service'; item: CalItem }   // editor cancelling/restoring a service date
+  | { kind: 'series'; item: CalItem }    // editor cancelling/restoring a series date
   | { kind: 'presets' }                  // editor managing presets
 
 export function CalendarPage({
   getItems,
   admin,
   events,
-  services,
+  series,
   presets,
   reloadEvents,
   reloadCancellations,
@@ -30,7 +29,7 @@ export function CalendarPage({
   getItems: GetItems
   admin: Admin | null
   events: EventRow[]
-  services: Service[]
+  series: Series[]
   presets: Preset[]
   reloadEvents: () => void
   reloadCancellations: () => void
@@ -42,7 +41,7 @@ export function CalendarPage({
   // Tapping a card: visitors see details, editors get the right editor
   function openItem(it: CalItem) {
     if (!admin) return setSelected({ kind: 'view', item: it })
-    if (it.kind === 'service') return setSelected({ kind: 'service', item: it })
+    if (it.kind === 'series') return setSelected({ kind: 'series', item: it })
     const ev = events.find((e) => e.e_id === it.refId)
     if (ev) setSelected({ kind: 'event', event: ev })
   }
@@ -78,13 +77,13 @@ export function CalendarPage({
             </>
           ) : !admin ? null : selected.kind === 'presets' ? (
             <PresetManager presets={presets} admin={admin} onChanged={reloadPresets} />
-          ) : selected.kind === 'service' ? (
+          ) : selected.kind === 'series' ? (
             <OccurrenceEditor item={selected.item} admin={admin} onSaved={reloadCancellations} onClose={close} />
           ) : (
             <EventEditor
               event={selected.kind === 'event' ? selected.event : undefined}
               initialDate={selected.kind === 'new' ? selected.dateKey : undefined}
-              services={services}
+              series={series}
               presets={presets}
               admin={admin}
               onSaved={() => { reloadEvents(); reloadCancellations() }}

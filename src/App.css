@@ -112,13 +112,6 @@ section { scroll-margin-top: 90px; }  /* sticky nav doesn't cover titles when ju
   color: #b42318;
 }
 
-/* Week view: empty days have no box */
-.cal-grid.week .day.empty:not(.today) {
-  background: none;
-  border-color: transparent;
-}
-.day-empty { font-size: 0.9rem; font-style: italic; }
-
 /* Tappable cards */
 .cal-card.clickable { cursor: pointer; }
 .cal-card.clickable:hover { filter: brightness(0.96); }
@@ -260,7 +253,7 @@ footer p { margin: 4px 0; }
 /* Week: stacked on phone, 7 columns on desktop */
 .cal-grid.week { grid-template-columns: 1fr; }
 @media (min-width: 768px) {
-  .cal-grid.week { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+  .cal-grid.week { grid-template-columns: repeat(8, minmax(0, 1fr)); }  /* Sunday through next Sunday */
 }
 
 /* Month: always 7 columns */
@@ -280,7 +273,13 @@ footer p { margin: 4px 0; }
 .day.today { border: 2px solid #3b4a6b; }
 .day.outside { opacity: 0.45; }
 .day-header { font-weight: 700; margin-bottom: 4px; }
-.day-empty { margin: 0; }
+.day-empty { margin: 0; font-size: 0.9rem; font-style: italic; }
+
+/* Week view: empty days have no box */
+.cal-grid.week .day.empty:not(.today) {
+  background: none;
+  border-color: transparent;
+}
 
 .cal-grid.week .day.today .day-header::after {
   content: ' · Today';
@@ -531,7 +530,9 @@ footer p { margin: 4px 0; }
 
 .small-note { font-size: 0.8rem; margin: 4px 0 0; }
 
+/* ===================================================== */
 /* ===== Preset manager ===== */
+/* ===================================================== */
 .calendar-header-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .calendar-header .secondary-add { border-style: solid; color: #555; }
 
@@ -554,7 +555,9 @@ footer p { margin: 4px 0; }
   padding: 12px;
 }
 
+/* ===================================================== */
 /* ===== − / ↺ quick buttons on Today cards (editors) ===== */
+/* ===================================================== */
 .today-item { position: relative; }
 .today-item .cal-card { padding-right: 52px; }  /* room for the button */
 
@@ -578,4 +581,16 @@ footer p { margin: 4px 0; }
 .quick-btn.restore {
   color: #3b4a6b;
   border-color: #d5d2cc;
+}
+
+#today .add-btn { margin-top: 8px; }
+
+/* ===================================================== */
+/* ===== Series hidden from home (editors only see these) ===== */
+/* ===================================================== */
+.card.hidden-series { opacity: 0.55; border-style: dashed; }
+.hidden-tag {
+  font-size: 0.8rem;
+  font-style: italic;
+  color: #777;
 }

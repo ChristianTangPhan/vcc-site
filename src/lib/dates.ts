@@ -49,7 +49,7 @@ export function getViewDays(anchor: Date, view: View) {
 
   if (view === 'week') {
     start = startOfWeek(anchor)
-    count = 7
+    count = 8 // Sunday through next Sunday
   } else {
     // Full weeks covering the month (Sunday before the 1st -> Saturday after the last day)
     const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1)
@@ -67,7 +67,7 @@ export function getViewTitle(anchor: Date, view: View) {
     return anchor.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   }
   const s = startOfWeek(anchor)
-  const e = addDays(s, 6)
+  const e = addDays(s, 7) // through next Sunday
   const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   return `${fmt(s)} – ${fmt(e)}, ${e.getFullYear()}`
 }

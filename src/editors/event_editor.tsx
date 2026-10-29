@@ -1,14 +1,14 @@
 import { useState, type FormEvent } from 'react'
-import type { Admin, EventRow, Preset, Service } from '../types'
+import type { Admin, EventRow, Preset, Series } from '../types'
 import { finishAdmin, sendAdmin } from '../lib/admin'
 import { formatDateKey, formatTime, fromKey, toKey } from '../lib/dates'
 import { TextField } from '../components/text_field'
 
-// Add or edit one event, with presets and "also cancel this day's services"
+// Add or edit one event, with presets and "also cancel this day's series"
 export function EventEditor({
   event,
   initialDate,
-  services,
+  series,
   presets,
   admin,
   onSaved,
@@ -17,7 +17,7 @@ export function EventEditor({
 }: {
   event?: EventRow
   initialDate?: string
-  services: Service[]
+  series: Series[]
   presets: Preset[]
   admin: Admin
   onSaved: () => void
@@ -33,7 +33,7 @@ export function EventEditor({
     e_end: event?.e_end?.slice(0, 5) ?? '20:00',
   })
   const [presetId, setPresetId] = useState('')
-  const [cancelIds, setCancelIds] = useState<string[]>([]) // services to cancel on this date
+  const [cancelIds, setCancelIds] = useState<string[]>([]) // series to cancel on this date
   const [saveAsPreset, setSaveAsPreset] = useState(false)
   const [presetLabel, setPresetLabel] = useState('')
   const [status, setStatus] = useState('')
@@ -42,9 +42,9 @@ export function EventEditor({
     setForm((f) => ({ ...f, [key]: value }))
   }
 
-  // Services that normally happen on the chosen date's weekday
-  const sameDayServices = form.e_date
-    ? services.filter((s) => s.s_day - 1 === fromKey(form.e_date).getDay())
+  // Series that normally happen on the chosen date's weekday
+  const sameDaySeries = form.e_date
+    ? series.filter((s) => s.s_day - 1 === fromKey(form.e_date).getDay())
     : []
 
   // Fill the form from a preset (date stays the same)
@@ -81,7 +81,7 @@ export function EventEditor({
     })
     if (!res.ok) return finishAdmin(res, admin, () => {}, setStatus)
 
-    // 2. Cross out the services it replaces that day
+    // 2. Cross out the series it replaces that day
     for (const sId of cancelIds) {
       res = await sendAdmin(admin, '/api/admin/cancellations', 'POST', {
         s_id: sId,
@@ -153,10 +153,10 @@ export function EventEditor({
       <TextField label="Location (house, restaurant…)" value={form.e_location} onChange={(v) => set('e_location', v)} />
       <TextField label="Description (optional)" multiline value={form.e_description} onChange={(v) => set('e_description', v)} />
 
-      {sameDayServices.length > 0 && (
+      {sameDaySeries.length > 0 && (
         <fieldset className="check-group">
           <legend>Also cancel on this day</legend>
-          {sameDayServices.map((s) => (
+          {sameDaySeries.map((s) => (
             <label key={s.s_id} className="check">
               <input
                 type="checkbox"

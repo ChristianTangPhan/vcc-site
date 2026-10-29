@@ -10,7 +10,8 @@ export type Pastor = {
   p_image: string | null
 }
 
-export type Service = {
+// A weekly repeating thing: services, worship practice, prayer...
+export type Series = {
   s_id: string
   s_name: string
   s_description: string | null
@@ -18,6 +19,7 @@ export type Service = {
   s_day: number // 1 = Sunday ... 7 = Saturday
   s_start: string
   s_end: string
+  s_show_on_home: boolean // listed under "Service Times" on the home page
 }
 
 export type Cancellation = {
@@ -61,10 +63,10 @@ export type ChurchInfo = {
   i_announcement: string | null
 }
 
-// One card on the calendar (a service on a date, or an event)
+// One card on the calendar (a series on a date, or an event)
 export type CalItem = {
   id: string
-  kind: 'service' | 'event'
+  kind: 'series' | 'event'
   refId: string   // s_id or e_id
   dateKey: string // "2026-11-12"
   name: string

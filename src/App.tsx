@@ -10,7 +10,7 @@ import type {
   EventRow,
   Pastor,
   Preset,
-  Service,
+  Series,
 } from './types'
 import { addDays, startOfDay, startOfWeek, toKey } from './lib/dates'
 import { clearAdminKey, loadAdminKey, saveAdminKey } from './lib/admin'
@@ -22,10 +22,26 @@ import { HomePage } from './pages/home_page'
 import { CalendarPage } from './pages/calendar_page'
 import { AdminPage } from './pages/admin_page'
 
+// How many weeks ahead weekly series show on the calendar (slides forward every Sunday)
+const SERIES_WEEKS_AHEAD = 4
+
+// Fetch JSON; if it fails, log which one and use a fallback,
+// so one bad request doesn't blank the whole page
+async function getJson<T>(url: string, fallback: T, headers?: HeadersInit): Promise<T> {
+  try {
+    const r = await fetch(url, { headers })
+    if (!r.ok) throw new Error(`HTTP ${r.status}`)
+    return await r.json()
+  } catch (err) {
+    console.error(`Failed to load ${url}:`, err)
+    return fallback
+  }
+}
+
 // Loads the data, draws the shared nav / announcement / footer, and picks the page
 function App() {
   const [pastors, setPastors] = useState<Pastor[]>([])
-  const [services, setServices] = useState<Service[]>([])
+  const [series, setSeries] = useState<Series[]>([])
   const [cancellations, setCancellations] = useState<Cancellation[]>([])
   const [events, setEvents] = useState<EventRow[]>([])
   const [presets, setPresets] = useState<Preset[]>([])
@@ -51,14 +67,14 @@ function App() {
   // Load everything once when the page opens
   useEffect(() => {
     Promise.all([
-      fetch('/api/pastors').then((r) => r.json()),
-      fetch('/api/services').then((r) => r.json()),
-      fetch('/api/cancellations').then((r) => r.json()),
-      fetch('/api/events').then((r) => r.json()),
-      fetch('/api/info').then((r) => r.json()),
+      getJson<Pastor[]>('/api/pastors', []),
+      getJson<Series[]>('/api/series', []),
+      getJson<Cancellation[]>('/api/cancellations', []),
+      getJson<EventRow[]>('/api/events', []),
+      getJson<ChurchInfo | null>('/api/info', null),
     ]).then(([p, s, c, ev, i]) => {
       setPastors(p)
-      setServices(s)
+      setSeries(s)
       setCancellations(c)
       setEvents(ev)
       setInfo(i)
@@ -69,9 +85,7 @@ function App() {
   // Presets are editor-only, so load them only when unlocked
   useEffect(() => {
     if (!adminKey) return
-    fetch('/api/admin/presets', { headers: { Authorization: `Bearer ${adminKey}` } })
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setPresets)
+    getJson<Preset[]>('/api/admin/presets', [], { Authorization: `Bearer ${adminKey}` }).then(setPresets)
   }, [adminKey])
 
   // After data loads, jump to the #section in the URL (e.g. /#pastors)
@@ -91,25 +105,23 @@ function App() {
 
   // Re-fetch after an edit is saved
   function reloadInfo() {
-    fetch('/api/info').then((r) => r.json()).then(setInfo)
+    getJson<ChurchInfo | null>('/api/info', null).then(setInfo)
   }
   function reloadPastors() {
-    fetch('/api/pastors').then((r) => r.json()).then(setPastors)
+    getJson<Pastor[]>('/api/pastors', []).then(setPastors)
   }
-  function reloadServices() {
-    fetch('/api/services').then((r) => r.json()).then(setServices)
+  function reloadSeries() {
+    getJson<Series[]>('/api/series', []).then(setSeries)
   }
   function reloadCancellations() {
-    fetch('/api/cancellations').then((r) => r.json()).then(setCancellations)
+    getJson<Cancellation[]>('/api/cancellations', []).then(setCancellations)
   }
   function reloadEvents() {
-    fetch('/api/events').then((r) => r.json()).then(setEvents)
+    getJson<EventRow[]>('/api/events', []).then(setEvents)
   }
   function reloadPresets() {
     if (!adminKey) return
-    fetch('/api/admin/presets', { headers: { Authorization: `Bearer ${adminKey}` } })
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setPresets)
+    getJson<Preset[]>('/api/admin/presets', [], { Authorization: `Bearer ${adminKey}` }).then(setPresets)
   }
 
   // ===== Admin =====
@@ -140,22 +152,20 @@ function App() {
 
   // ===== Calendar items =====
 
-  // Everything on a given date: weekly services (minus cancellations) + events
+  // Everything on a given date: weekly series (minus cancellations) + events
   function getItems(date: Date): CalItem[] {
     const key = toKey(date)
 
-    // Rolling window: services show through the Saturday 4 weeks after this week
-    // (slides forward a week every Sunday on its own)
-    const SERVICE_WEEKS_AHEAD = 12
-    const lastServiceDay = addDays(startOfWeek(startOfDay(new Date())), SERVICE_WEEKS_AHEAD * 7 + 6)
+    // Rolling window: series show through the Saturday N weeks after this week
+    const lastSeriesDay = addDays(startOfWeek(startOfDay(new Date())), SERIES_WEEKS_AHEAD * 7 + 6)
 
-    const serviceItems: CalItem[] = (date > lastServiceDay ? [] : services)
+    const seriesItems: CalItem[] = (date > lastSeriesDay ? [] : series)
       .filter((s) => s.s_day - 1 === date.getDay())
       .map((s) => {
         const c = cancellations.find((c) => c.s_id === s.s_id && c.sc_date === key)
         return {
           id: `s-${s.s_id}-${key}`,
-          kind: 'service',
+          kind: 'series',
           refId: s.s_id,
           dateKey: key,
           name: s.s_name,
@@ -184,7 +194,7 @@ function App() {
         reason: null,
       }))
 
-    return [...serviceItems, ...eventItems]
+    return [...seriesItems, ...eventItems]
       .filter((it) => admin || !it.cancelled) // visitors don't see cancelled dates; editors do (to restore them)
       .sort((a, b) => a.start.localeCompare(b.start))
   }
@@ -264,7 +274,7 @@ function App() {
           getItems={getItems}
           admin={admin}
           events={events}
-          services={services}
+          series={series}
           presets={presets}
           reloadEvents={reloadEvents}
           reloadCancellations={reloadCancellations}
@@ -273,17 +283,17 @@ function App() {
       ) : (
         <HomePage
           info={info}
-          services={services}
+          series={series}
           pastors={pastors}
+          presets={presets}
           getItems={getItems}
           admin={admin}
           canEditInfo={canEditInfo}
           editInfo={editInfo}
           reloadPastors={reloadPastors}
-          reloadServices={reloadServices}
+          reloadSeries={reloadSeries}
           reloadCancellations={reloadCancellations}
           reloadEvents={reloadEvents}
-          presets={presets}
           reloadPresets={reloadPresets}
         />
       )}

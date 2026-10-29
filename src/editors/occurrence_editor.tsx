@@ -4,7 +4,7 @@ import { finishAdmin, sendAdmin } from '../lib/admin'
 import { formatDateKey, formatTime } from '../lib/dates'
 import { TextField } from '../components/text_field'
 
-// Cancel or restore ONE date of a weekly service
+// Cancel or restore ONE date of a weekly series
 export function OccurrenceEditor({
   item,
   admin,
@@ -69,7 +69,7 @@ export function OccurrenceEditor({
       )}
 
       <p className="muted small-note">
-        To change the day or time for every week, edit it under Service Times on the home page.
+        To change the day or time for every week, edit it under Service Times on the home page (editors see every series there).
       </p>
     </div>
   )
