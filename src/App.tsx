@@ -27,13 +27,19 @@ const SERIES_WEEKS_AHEAD = 4
 
 // Fetch JSON; if it fails, log which one and use a fallback,
 // so one bad request doesn't blank the whole page
-async function getJson<T>(url: string, fallback: T, headers?: HeadersInit): Promise<T> {
+async function getJson<T>(
+  url: string,
+  fallback: T,
+  headers?: HeadersInit,
+  onFail?: () => void
+): Promise<T> {
   try {
     const r = await fetch(url, { headers })
     if (!r.ok) throw new Error(`HTTP ${r.status}`)
     return await r.json()
   } catch (err) {
     console.error(`Failed to load ${url}:`, err)
+    onFail?.()
     return fallback
   }
 }
@@ -46,7 +52,8 @@ function App() {
   const [events, setEvents] = useState<EventRow[]>([])
   const [presets, setPresets] = useState<Preset[]>([])
   const [info, setInfo] = useState<ChurchInfo | null>(null)
-  const [loaded, setLoaded] = useState(false)
+  const [loaded, setLoaded] = useState(false) // true once the first load finishes (for #section jumps)
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [adminKey, setAdminKey] = useState<string | null>(() => loadAdminKey())
 
   // Which page: "/admin", "/calendar", or home
@@ -64,23 +71,42 @@ function App() {
 
   // ===== Loading data =====
 
-  // Load everything once when the page opens
-  useEffect(() => {
-    Promise.all([
-      getJson<Pastor[]>('/api/pastors', []),
-      getJson<Series[]>('/api/series', []),
-      getJson<Cancellation[]>('/api/cancellations', []),
-      getJson<EventRow[]>('/api/events', []),
-      getJson<ChurchInfo | null>('/api/info', null),
-    ]).then(([p, s, c, ev, i]) => {
+  // Load (or re-load) everything; shows "Loading…", then "Try again" if anything failed
+  async function loadAll() {
+    setStatus('loading')
+    let failed = false
+    const fail = () => { failed = true }
+
+    const [p, s, c, ev, i] = await Promise.all([
+      getJson<Pastor[]>('/api/pastors', [], undefined, fail),
+      getJson<Series[]>('/api/series', [], undefined, fail),
+      getJson<Cancellation[]>('/api/cancellations', [], undefined, fail),
+      getJson<EventRow[]>('/api/events', [], undefined, fail),
+      getJson<ChurchInfo | null>('/api/info', null, undefined, fail),
+    ])
+
+    // On a failed retry, keep what's already on screen instead of blanking it
+    if (!failed || !loaded) {
       setPastors(p)
       setSeries(s)
       setCancellations(c)
       setEvents(ev)
       setInfo(i)
-      setLoaded(true)
-    })
+    }
+    setLoaded(true)
+    setStatus(failed ? 'error' : 'ready')
+  }
+
+  // Load everything once when the page opens
+  useEffect(() => {
+    loadAll()
   }, [])
+
+  // Refresh button: reload the data without reloading the page
+  function refreshAll() {
+    loadAll()
+    reloadPresets()
+  }
 
   // Presets are editor-only, so load them only when unlocked
   useEffect(() => {
@@ -225,7 +251,19 @@ function App() {
   return (
     <>
       <header className="nav">
-        <a href="/" className="nav-title" onClick={goHome}>{info?.i_abrv ?? info?.i_name}</a>
+        <div className="nav-top">
+          <a href="/" className="nav-title" onClick={goHome}>{info?.i_abrv ?? info?.i_name}</a>
+          <button
+            type="button"
+            className={`refresh-btn ${status === 'loading' ? 'spinning' : ''}`}
+            onClick={refreshAll}
+            disabled={status === 'loading'}
+            aria-label="Refresh"
+            title="Refresh"
+          >
+            ↻
+          </button>
+        </div>
         <nav>
           <a href="/" onClick={goHome} className={page === 'home' ? 'active' : ''}>Home</a>
           <a href="/calendar" className={page === 'calendar' ? 'active' : ''}>Calendar</a>
@@ -234,6 +272,19 @@ function App() {
           <a href="/#about">About</a>
         </nav>
       </header>
+
+      {/* Loading / error bar (the database can take a few seconds to wake up) */}
+      {status === 'loading' && (
+        <div className="status-bar loading" role="status">
+          <span className="spinner" aria-hidden="true" /> Loading…
+        </div>
+      )}
+      {status === 'error' && (
+        <div className="status-bar error" role="alert">
+          <span>Couldn't load some info.</span>
+          <button type="button" onClick={refreshAll}>Try again</button>
+        </div>
+      )}
 
       {admin && (
         <div className="admin-bar">
@@ -295,6 +346,7 @@ function App() {
           reloadCancellations={reloadCancellations}
           reloadEvents={reloadEvents}
           reloadPresets={reloadPresets}
+          loading={!loaded}
         />
       )}
 

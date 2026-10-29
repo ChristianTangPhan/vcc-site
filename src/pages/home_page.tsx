@@ -23,6 +23,7 @@ export function HomePage({
   reloadCancellations,
   reloadEvents,
   reloadPresets,
+  loading,
 }: {
   info: ChurchInfo | null
   series: Series[]
@@ -37,6 +38,7 @@ export function HomePage({
   reloadCancellations: () => void
   reloadEvents: () => void
   reloadPresets: () => void
+  loading: boolean
 }) {
   const todayItems = getItems(startOfDay(new Date()))
   const [addingSeries, setAddingSeries] = useState(false)
@@ -83,7 +85,7 @@ export function HomePage({
           {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
         </h2>
         {todayItems.length === 0 ? (
-          <p className="muted">No events today.</p>
+          <p className="muted">{loading ? 'Loading…' : 'No events today.'}</p>
         ) : (
           todayItems.map((it) => {
             const restoring = it.kind === 'series' && it.cancelled

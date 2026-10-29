@@ -603,3 +603,60 @@ footer p { margin: 4px 0; }
   font-style: italic;
   color: #777;
 }
+
+/* ===================================================== */
+/* ===== Loading / error bar + refresh button ===== */
+/* ===================================================== */
+.nav-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.refresh-btn {
+  background: none;
+  border: 1px solid #d5d2cc;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--brand-dark);
+  cursor: pointer;
+  padding: 0;
+}
+.refresh-btn:disabled { cursor: default; opacity: 0.6; }
+.refresh-btn.spinning { animation: spin 0.9s linear infinite; }
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+}
+.status-bar.loading { background: var(--brand-tint); color: var(--brand-dark); }
+.status-bar.error { background: #fdecea; color: #b42318; }
+.status-bar.error button {
+  background: #b42318;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  display: inline-block;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
