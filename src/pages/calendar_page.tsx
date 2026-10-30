@@ -4,16 +4,13 @@ import { formatDateKey, toKey } from '../lib/dates'
 import { Calendar } from '../components/calendar'
 import { CalCard } from '../components/cal_card'
 import { Modal } from '../components/modal'
-import { EventEditor } from '../editors/event_editor'
-import { OccurrenceEditor } from '../editors/occurrence_editor'
+import { ItemEditor, type EditTarget } from '../editors/item_editor'
 import { PresetManager } from '../editors/preset_manager'
 
 // What's open in the popup
 type Selection =
   | { kind: 'view'; item: CalItem }      // visitor looking at details
-  | { kind: 'new'; dateKey: string }     // editor adding an event
-  | { kind: 'event'; event: EventRow }   // editor editing an event
-  | { kind: 'series'; item: CalItem }    // editor cancelling/restoring a series date
+  | { kind: 'edit'; target: EditTarget } // editor adding/editing an event or series
   | { kind: 'presets' }                  // editor managing presets
 
 export function CalendarPage({
@@ -23,6 +20,7 @@ export function CalendarPage({
   series,
   presets,
   reloadEvents,
+  reloadSeries,
   reloadCancellations,
   reloadPresets,
 }: {
@@ -32,22 +30,32 @@ export function CalendarPage({
   series: Series[]
   presets: Preset[]
   reloadEvents: () => void
+  reloadSeries: () => void
   reloadCancellations: () => void
   reloadPresets: () => void
 }) {
   const [selected, setSelected] = useState<Selection | null>(null)
   const close = () => setSelected(null)
 
-  // Tapping a card: visitors see details, editors get the right editor
+  // Tapping a card: visitors see details, editors get the editor
   function openItem(it: CalItem) {
     if (!admin) return setSelected({ kind: 'view', item: it })
-    if (it.kind === 'series') return setSelected({ kind: 'series', item: it })
+    if (it.kind === 'series') {
+      const s = series.find((x) => x.s_id === it.refId)
+      if (s) {
+        setSelected({
+          kind: 'edit',
+          target: { kind: 'series', series: s, occurrence: { dateKey: it.dateKey, cancelled: it.cancelled, reason: it.reason } },
+        })
+      }
+      return
+    }
     const ev = events.find((e) => e.e_id === it.refId)
-    if (ev) setSelected({ kind: 'event', event: ev })
+    if (ev) setSelected({ kind: 'edit', target: { kind: 'event', event: ev } })
   }
 
   function addOn(d: Date) {
-    setSelected({ kind: 'new', dateKey: toKey(d) })
+    setSelected({ kind: 'edit', target: { kind: 'new', dateKey: toKey(d) } })
   }
 
   return (
@@ -60,7 +68,7 @@ export function CalendarPage({
               Manage presets
             </button>
             <button type="button" className="add-btn" onClick={() => addOn(new Date())}>
-              + Add event
+              + Add
             </button>
           </div>
         )}
@@ -77,16 +85,13 @@ export function CalendarPage({
             </>
           ) : !admin ? null : selected.kind === 'presets' ? (
             <PresetManager presets={presets} admin={admin} onChanged={reloadPresets} />
-          ) : selected.kind === 'series' ? (
-            <OccurrenceEditor item={selected.item} admin={admin} onSaved={reloadCancellations} onClose={close} />
           ) : (
-            <EventEditor
-              event={selected.kind === 'event' ? selected.event : undefined}
-              initialDate={selected.kind === 'new' ? selected.dateKey : undefined}
+            <ItemEditor
+              target={selected.target}
               series={series}
               presets={presets}
               admin={admin}
-              onSaved={() => { reloadEvents(); reloadCancellations() }}
+              onSaved={() => { reloadEvents(); reloadSeries(); reloadCancellations() }}
               onPresetsChanged={reloadPresets}
               onClose={close}
             />

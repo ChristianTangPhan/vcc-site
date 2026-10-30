@@ -343,6 +343,7 @@ function App() {
           series={series}
           presets={presets}
           reloadEvents={reloadEvents}
+          reloadSeries={reloadSeries}
           reloadCancellations={reloadCancellations}
           reloadPresets={reloadPresets}
         />

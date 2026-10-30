@@ -8,9 +8,8 @@ import { DragList } from '../components/drag_list'
 import { CalCard } from '../components/cal_card'
 import { Modal } from '../components/modal'
 import { LocationLine } from '../components/copy_button'
-import { SeriesEditor } from '../editors/series_editor'
 import { PastorEditor } from '../editors/pastor_editor'
-import { EventEditor } from '../editors/event_editor'
+import { ItemEditor, type EditTarget } from '../editors/item_editor'
 
 export function HomePage({
   info,
@@ -48,23 +47,40 @@ export function HomePage({
   loading: boolean
 }) {
   const todayItems = getItems(startOfDay(new Date()))
-  const [addingSeries, setAddingSeries] = useState(false)
   const [addingPastor, setAddingPastor] = useState(false)
-  const [addingEvent, setAddingEvent] = useState(false)
 
-  // Event being edited from a Today card (opens in a popup)
-  const [editingEvent, setEditingEvent] = useState<EventRow | null>(null)
-  const [editingSeries, setEditingSeries] = useState<Series | null>(null)
+  // Event / series open in the editor popup
+  const [editing, setEditing] = useState<EditTarget | null>(null)
+
+  function reloadAll() {
+    reloadEvents()
+    reloadSeries()
+    reloadCancellations()
+  }
+
+  // Editor for a Today card: events edit as-is; series also get "this date only" options
+  function editItem(it: CalItem) {
+    if (it.kind === 'event') {
+      const ev = events.find((e) => e.e_id === it.refId)
+      if (ev) setEditing({ kind: 'event', event: ev })
+    } else {
+      const s = series.find((x) => x.s_id === it.refId)
+      if (s) setEditing({ kind: 'series', series: s, occurrence: { dateKey: it.dateKey, cancelled: it.cancelled, reason: it.reason } })
+    }
+  }
 
   // Details popup: heading line (date or "Every Sunday") + the card
   const [details, setDetails] = useState<{ heading: string; item: CalItem } | null>(null)
 
+  // Tapping a Today card: editors get the editor, visitors get the details
   function openToday(it: CalItem) {
+    if (admin) return editItem(it)
     setDetails({ heading: 'Today', item: it })
   }
 
-  // A weekly series shown as a card in the popup
+  // Tapping a Service Times card: editors edit it, visitors see the details
   function openSeries(s: Series) {
+    if (admin) return setEditing({ kind: 'series', series: s })
     setDetails({
       heading: `Every ${dayNames[s.s_day - 1]}`,
       item: {
@@ -137,11 +153,7 @@ export function HomePage({
                     <button
                       type="button"
                       className="quick-btn edit"
-                      onClick={() =>
-                        it.kind === 'event'
-                          ? setEditingEvent(events.find((e) => e.e_id === it.refId) ?? null)
-                          : setEditingSeries(series.find((s) => s.s_id === it.refId) ?? null)
-                      }
+                      onClick={() => editItem(it)}
                       aria-label={it.kind === 'event' ? 'Edit event' : 'Edit weekly series'}
                       title={it.kind === 'event' ? 'Edit event' : 'Edit weekly series (every week)'}
                     >
@@ -163,22 +175,11 @@ export function HomePage({
           })
         )}
 
-        {admin &&
-          (addingEvent ? (
-            <EventEditor
-              initialDate={toKey(new Date())}
-              series={series}
-              presets={presets}
-              admin={admin}
-              onSaved={() => { reloadEvents(); reloadCancellations() }}
-              onPresetsChanged={reloadPresets}
-              onClose={() => setAddingEvent(false)}
-            />
-          ) : (
-            <button type="button" className="add-btn" onClick={() => setAddingEvent(true)}>
-              + Add event today
-            </button>
-          ))}
+        {admin && (
+          <button type="button" className="add-btn" onClick={() => setEditing({ kind: 'new', dateKey: toKey(new Date()) })}>
+            + Add event today
+          </button>
+        )}
 
         <a href="/calendar" className="section-link today-link">View full calendar →</a>
       </section>
@@ -199,13 +200,7 @@ export function HomePage({
           renderItem={(s, handle) => (
             <>
               {handle}
-              <Editable
-                className="drag-body"
-                canEdit={!!admin}
-                editor={(close) =>
-                  admin && <SeriesEditor series={s} admin={admin} onSaved={reloadSeries} onClose={close} />
-                }
-              >
+              <div className="drag-body series-card-wrap">
                 <div
                   className={`card clickable-card ${s.s_show_on_home ? '' : 'hidden-series'}`}
                   onClick={() => openSeries(s)}
@@ -219,19 +214,21 @@ export function HomePage({
                   {s.s_description && <p>{s.s_description}</p>}
                   {!s.s_show_on_home && <p className="hidden-tag">Not shown on home (calendar only)</p>}
                 </div>
-              </Editable>
+                {admin && (
+                  <button type="button" className="edit-btn" onClick={() => setEditing({ kind: 'series', series: s })}>
+                    ✏️ Edit
+                  </button>
+                )}
+              </div>
             </>
           )}
         />
 
-        {admin &&
-          (addingSeries ? (
-            <SeriesEditor admin={admin} onSaved={reloadSeries} onClose={() => setAddingSeries(false)} />
-          ) : (
-            <button type="button" className="add-btn" onClick={() => setAddingSeries(true)}>
-              + Add weekly series
-            </button>
-          ))}
+        {admin && (
+          <button type="button" className="add-btn" onClick={() => setEditing({ kind: 'new', repeats: true })}>
+            + Add weekly series
+          </button>
+        )}
       </section>
 
       {/* ===== Pastors ===== */}
@@ -276,27 +273,16 @@ export function HomePage({
         </Editable>
       </section>
 
-      {editingEvent && admin && (
-        <Modal onClose={() => setEditingEvent(null)}>
-          <EventEditor
-            event={editingEvent}
+      {editing && admin && (
+        <Modal onClose={() => setEditing(null)}>
+          <ItemEditor
+            target={editing}
             series={series}
             presets={presets}
             admin={admin}
-            onSaved={() => { reloadEvents(); reloadCancellations() }}
+            onSaved={reloadAll}
             onPresetsChanged={reloadPresets}
-            onClose={() => setEditingEvent(null)}
-          />
-        </Modal>
-      )}
-
-      {editingSeries && admin && (
-        <Modal onClose={() => setEditingSeries(null)}>
-          <SeriesEditor
-            series={editingSeries}
-            admin={admin}
-            onSaved={reloadSeries}
-            onClose={() => setEditingSeries(null)}
+            onClose={() => setEditing(null)}
           />
         </Modal>
       )}
