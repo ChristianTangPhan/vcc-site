@@ -54,6 +54,7 @@ export function HomePage({
 
   // Event being edited from a Today card (opens in a popup)
   const [editingEvent, setEditingEvent] = useState<EventRow | null>(null)
+  const [editingSeries, setEditingSeries] = useState<Series | null>(null)
 
   // Details popup: heading line (date or "Every Sunday") + the card
   const [details, setDetails] = useState<{ heading: string; item: CalItem } | null>(null)
@@ -132,18 +133,20 @@ export function HomePage({
               <div className="today-item" key={it.id}>
                 <CalCard item={it} onClick={() => openToday(it)} />
                 {admin && (
-                  <div className={`today-actions ${it.kind === 'event' ? 'two' : ''}`}>
-                    {it.kind === 'event' && (
-                      <button
-                        type="button"
-                        className="quick-btn edit"
-                        onClick={() => setEditingEvent(events.find((e) => e.e_id === it.refId) ?? null)}
-                        aria-label="Edit event"
-                        title="Edit event"
-                      >
-                        ✏️
-                      </button>
-                    )}
+                  <div className="today-actions two">
+                    <button
+                      type="button"
+                      className="quick-btn edit"
+                      onClick={() =>
+                        it.kind === 'event'
+                          ? setEditingEvent(events.find((e) => e.e_id === it.refId) ?? null)
+                          : setEditingSeries(series.find((s) => s.s_id === it.refId) ?? null)
+                      }
+                      aria-label={it.kind === 'event' ? 'Edit event' : 'Edit weekly series'}
+                      title={it.kind === 'event' ? 'Edit event' : 'Edit weekly series (every week)'}
+                    >
+                      ✏️
+                    </button>
                     <button
                       type="button"
                       className={`quick-btn ${restoring ? 'restore' : ''}`}
@@ -283,6 +286,17 @@ export function HomePage({
             onSaved={() => { reloadEvents(); reloadCancellations() }}
             onPresetsChanged={reloadPresets}
             onClose={() => setEditingEvent(null)}
+          />
+        </Modal>
+      )}
+
+      {editingSeries && admin && (
+        <Modal onClose={() => setEditingSeries(null)}>
+          <SeriesEditor
+            series={editingSeries}
+            admin={admin}
+            onSaved={reloadSeries}
+            onClose={() => setEditingSeries(null)}
           />
         </Modal>
       )}
