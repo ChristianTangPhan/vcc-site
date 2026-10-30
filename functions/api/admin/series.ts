@@ -43,6 +43,19 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
   }
 }
 
+// PUT = save drag-and-drop order: { ids: ["3", "1", "2"] } (first = top)
+export async function onRequestPut(context: { request: Request; env: Env }) {
+  const b = (await context.request.json()) as { ids?: string[] }
+  if (!Array.isArray(b.ids) || b.ids.length === 0) return new Response('Missing ids', { status: 400 })
+  const sql = neon(context.env.DATABASE_URL)
+  try {
+    await sql`SELECT reorder_series(${b.ids}::bigint[])`
+    return Response.json({ ok: true })
+  } catch (err) {
+    return errorResponse(err)
+  }
+}
+
 // DELETE /api/admin/series?id=3
 export async function onRequestDelete(context: { request: Request; env: Env }) {
   const id = new URL(context.request.url).searchParams.get('id')

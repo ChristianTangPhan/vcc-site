@@ -13,7 +13,7 @@ import type {
   Series,
 } from './types'
 import { addDays, startOfDay, startOfWeek, toKey } from './lib/dates'
-import { clearAdminKey, loadAdminKey, saveAdminKey } from './lib/admin'
+import { clearAdminKey, loadAdminKey, saveAdminKey, sendAdmin } from './lib/admin'
 import { mapsUrl } from './lib/maps'
 import { announcementFields, contactFields } from './lib/info_fields'
 import { Editable } from './components/editable'
@@ -139,6 +139,18 @@ function App() {
   function reloadSeries() {
     getJson<Series[]>('/api/series', []).then(setSeries)
   }
+  // Drag-and-drop order for Service Times: show it right away, then save
+  async function reorderSeries(newOrder: Series[]) {
+    if (!admin) return
+    setSeries(newOrder)
+    const res = await sendAdmin(admin, '/api/admin/series', 'PUT', { ids: newOrder.map((s) => s.s_id) })
+    if (res.status === 401) return admin.logout()
+    if (!res.ok) {
+      alert(`Couldn't save the new order: ${await res.text()}`)
+      reloadSeries()
+    }
+  }
+
   function reloadCancellations() {
     getJson<Cancellation[]>('/api/cancellations', []).then(setCancellations)
   }
@@ -344,6 +356,7 @@ function App() {
           editInfo={editInfo}
           reloadPastors={reloadPastors}
           reloadSeries={reloadSeries}
+          reorderSeries={reorderSeries}
           reloadCancellations={reloadCancellations}
           reloadEvents={reloadEvents}
           reloadPresets={reloadPresets}

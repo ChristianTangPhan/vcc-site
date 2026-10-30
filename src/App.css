@@ -680,3 +680,28 @@ footer p { margin: 4px 0; }
   padding: 0;
 }
 .time-field small { font-size: 0.75rem; font-style: italic; }
+
+/* ===================================================== */
+/* ===== Drag to reorder (Service Times, editors) ===== */
+/* ===================================================== */
+.drag-row { display: flex; align-items: stretch; gap: 6px; }
+.drag-body { flex: 1; min-width: 0; }
+.drag-handle {
+  flex: 0 0 28px;
+  margin-bottom: 12px;              /* line up with the card's bottom margin */
+  border: 1px dashed #d5d2cc;
+  border-radius: 8px;
+  background: #fff;
+  color: #888;
+  font-size: 1rem;
+  cursor: grab;
+  touch-action: none;               /* stop the page scrolling while dragging on iPhone */
+  user-select: none;
+  -webkit-user-select: none;
+  padding: 0;
+}
+.drag-row.is-dragging .drag-handle { cursor: grabbing; color: var(--brand-dark); border-color: var(--brand); }
+.drag-row.is-dragging .card {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+  border-color: var(--brand);
+}

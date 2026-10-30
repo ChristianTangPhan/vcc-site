@@ -4,6 +4,7 @@ import { dayNames, formatTimeRange, startOfDay, toKey } from '../lib/dates'
 import { finishAdmin, sendAdmin } from '../lib/admin'
 import { aboutFields, heroFields } from '../lib/info_fields'
 import { Editable } from '../components/editable'
+import { DragList } from '../components/drag_list'
 import { CalCard } from '../components/cal_card'
 import { SeriesEditor } from '../editors/series_editor'
 import { PastorEditor } from '../editors/pastor_editor'
@@ -20,6 +21,7 @@ export function HomePage({
   editInfo,
   reloadPastors,
   reloadSeries,
+  reorderSeries,
   reloadCancellations,
   reloadEvents,
   reloadPresets,
@@ -35,6 +37,7 @@ export function HomePage({
   editInfo: EditInfo
   reloadPastors: () => void
   reloadSeries: () => void
+  reorderSeries: (newOrder: Series[]) => void
   reloadCancellations: () => void
   reloadEvents: () => void
   reloadPresets: () => void
@@ -134,26 +137,35 @@ export function HomePage({
         <h2>Service Times</h2>
         {admin && (
           <p className="muted small-note">
-            Editors see every weekly series here. Dimmed ones are hidden from visitors.
+            Editors see every weekly series here. Dimmed ones are hidden from visitors. Drag ☰ to change the order.
           </p>
         )}
-        {listedSeries.map((s) => (
-          <Editable
-            key={s.s_id}
-            canEdit={!!admin}
-            editor={(close) =>
-              admin && <SeriesEditor series={s} admin={admin} onSaved={reloadSeries} onClose={close} />
-            }
-          >
-            <div className={`card ${s.s_show_on_home ? '' : 'hidden-series'}`}>
-              <h3>{s.s_name}</h3>
-              <p>{[dayNames[s.s_day - 1], formatTimeRange(s.s_start, s.s_end)].filter(Boolean).join(' · ')}</p>
-              <p className="muted">{s.s_location}</p>
-              {s.s_description && <p>{s.s_description}</p>}
-              {!s.s_show_on_home && <p className="hidden-tag">Not shown on home (calendar only)</p>}
-            </div>
-          </Editable>
-        ))}
+        <DragList
+          items={listedSeries}
+          getKey={(s) => s.s_id}
+          enabled={!!admin}
+          onReorder={reorderSeries}
+          renderItem={(s, handle) => (
+            <>
+              {handle}
+              <Editable
+                className="drag-body"
+                canEdit={!!admin}
+                editor={(close) =>
+                  admin && <SeriesEditor series={s} admin={admin} onSaved={reloadSeries} onClose={close} />
+                }
+              >
+                <div className={`card ${s.s_show_on_home ? '' : 'hidden-series'}`}>
+                  <h3>{s.s_name}</h3>
+                  <p>{[dayNames[s.s_day - 1], formatTimeRange(s.s_start, s.s_end)].filter(Boolean).join(' · ')}</p>
+                  <p className="muted">{s.s_location}</p>
+                  {s.s_description && <p>{s.s_description}</p>}
+                  {!s.s_show_on_home && <p className="hidden-tag">Not shown on home (calendar only)</p>}
+                </div>
+              </Editable>
+            </>
+          )}
+        />
 
         {admin &&
           (addingSeries ? (
