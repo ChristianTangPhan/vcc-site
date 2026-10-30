@@ -1,4 +1,4 @@
-// Apple Maps on Apple devices, Google Maps everywhere else
+// Map links: Apple Maps on Apple devices, Google Maps everywhere else
 export function mapsUrl(address: string) {
   const q = encodeURIComponent(address)
   const isApple = /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent)

@@ -1,8 +1,8 @@
-import { neon } from '@neondatabase/serverless'
-
-type Env = { DATABASE_URL: string }
+// /api/admin/presets - list, add, edit, or delete event presets
+import { badRequest, blankToNull, handle, readBody, urlParam } from '../../_lib/db'
 
 type Body = {
+  ep_id?: string
   ep_label?: string
   ep_name?: string
   ep_description?: string
@@ -12,75 +12,47 @@ type Body = {
   ep_end?: string
 }
 
-function errorResponse(err: unknown) {
-  const msg = err instanceof Error ? err.message : 'Unknown error'
-  return new Response(msg, { status: 400 })
-}
+// GET - all presets (editors only, since it's under /admin)
+export const onRequestGet = handle((sql) => sql`SELECT * FROM get_event_presets()`)
 
-const orNull = (v?: string) => (v && v.trim() ? v : null)
+// POST - save by name (same name overwrites)
+export const onRequestPost = handle(async (sql, ctx) => {
+  const b = await readBody<Body>(ctx)
+  if (!b.ep_label?.trim()) return badRequest('Preset name is required')
+  const rows = await sql`
+    SELECT upsert_event_preset(
+      ${b.ep_label},
+      ${b.ep_name ?? null},
+      ${b.ep_description ?? null},
+      ${b.ep_location ?? null},
+      ${blankToNull(b.ep_start)}::time,
+      ${blankToNull(b.ep_end)}::time,
+      ${b.ep_location_is_address ?? false}::boolean
+    ) AS id`
+  return { id: rows[0].id }
+})
 
-// GET = list presets (editors only, since it's under /admin)
-export async function onRequestGet(context: { env: Env }) {
-  const sql = neon(context.env.DATABASE_URL)
-  const rows = await sql`SELECT * FROM get_event_presets()`
-  return Response.json(rows)
-}
+// PUT - edit by id (lets you rename it)
+export const onRequestPut = handle(async (sql, ctx) => {
+  const b = await readBody<Body>(ctx)
+  if (!b.ep_id) return badRequest('Missing ep_id')
+  if (!b.ep_label?.trim()) return badRequest('Preset name is required')
+  await sql`
+    SELECT update_event_preset(
+      ${b.ep_id}::bigint,
+      ${b.ep_label},
+      ${b.ep_name ?? null},
+      ${b.ep_description ?? null},
+      ${b.ep_location ?? null},
+      ${blankToNull(b.ep_start)}::time,
+      ${blankToNull(b.ep_end)}::time,
+      ${b.ep_location_is_address ?? false}::boolean
+    )`
+})
 
-// POST = save preset (same label overwrites)
-export async function onRequestPost(context: { request: Request; env: Env }) {
-  const b = (await context.request.json()) as Body
-  if (!b.ep_label?.trim()) return new Response('Preset name is required', { status: 400 })
-  const sql = neon(context.env.DATABASE_URL)
-  try {
-    const rows = await sql`
-      SELECT upsert_event_preset(
-        ${b.ep_label},
-        ${b.ep_name ?? null},
-        ${b.ep_description ?? null},
-        ${b.ep_location ?? null},
-        ${orNull(b.ep_start)}::time,
-        ${orNull(b.ep_end)}::time,
-        ${b.ep_location_is_address ?? false}::boolean
-      ) AS id`
-    return Response.json({ id: rows[0].id })
-  } catch (err) {
-    return errorResponse(err)
-  }
-}
-
-// DELETE /api/admin/presets?id=3
-export async function onRequestDelete(context: { request: Request; env: Env }) {
-  const id = new URL(context.request.url).searchParams.get('id')
-  if (!id) return new Response('Missing id', { status: 400 })
-  const sql = neon(context.env.DATABASE_URL)
-  try {
-    await sql`SELECT delete_event_preset(${id}::bigint)`
-    return Response.json({ ok: true })
-  } catch (err) {
-    return errorResponse(err)
-  }
-}
-
-// PUT = edit an existing preset by id (lets you rename it)
-export async function onRequestPut(context: { request: Request; env: Env }) {
-  const b = (await context.request.json()) as Body & { ep_id?: string }
-  if (!b.ep_id) return new Response('Missing ep_id', { status: 400 })
-  if (!b.ep_label?.trim()) return new Response('Preset name is required', { status: 400 })
-  const sql = neon(context.env.DATABASE_URL)
-  try {
-    await sql`
-      SELECT update_event_preset(
-        ${b.ep_id}::bigint,
-        ${b.ep_label},
-        ${b.ep_name ?? null},
-        ${b.ep_description ?? null},
-        ${b.ep_location ?? null},
-        ${orNull(b.ep_start)}::time,
-        ${orNull(b.ep_end)}::time,
-        ${b.ep_location_is_address ?? false}::boolean
-      )`
-    return Response.json({ ok: true })
-  } catch (err) {
-    return errorResponse(err)
-  }
-}
+// DELETE ?id=3
+export const onRequestDelete = handle(async (sql, ctx) => {
+  const id = urlParam(ctx, 'id')
+  if (!id) return badRequest('Missing id')
+  await sql`SELECT delete_event_preset(${id}::bigint)`
+})

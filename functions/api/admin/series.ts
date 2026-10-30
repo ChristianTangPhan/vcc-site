@@ -1,6 +1,5 @@
-import { neon } from '@neondatabase/serverless'
-
-type Env = { DATABASE_URL: string }
+// /api/admin/series - add, edit, reorder, or delete a weekly series
+import { badRequest, blankToNull, handle, readBody, urlParam } from '../../_lib/db'
 
 type Body = {
   s_id?: string | null
@@ -14,59 +13,34 @@ type Body = {
   s_show_on_home?: boolean
 }
 
-function errorResponse(err: unknown) {
-  const msg = err instanceof Error ? err.message : 'Unknown error'
-  return new Response(msg, { status: 400 })
-}
+// POST - add (no s_id) or update (with s_id)
+export const onRequestPost = handle(async (sql, ctx) => {
+  const b = await readBody<Body>(ctx)
+  const rows = await sql`
+    SELECT upsert_series(
+      ${b.s_id ?? null}::bigint,
+      ${b.s_name ?? null},
+      ${b.s_description ?? null},
+      ${b.s_location ?? null},
+      ${b.s_day ?? null}::int,
+      ${blankToNull(b.s_start)}::time,
+      ${blankToNull(b.s_end)}::time,
+      ${b.s_show_on_home ?? false}::boolean,
+      ${b.s_location_is_address ?? false}::boolean
+    ) AS id`
+  return { id: rows[0].id }
+})
 
-// Empty time box -> NULL (Postgres can't turn "" into a time)
-const timeOrNull = (v?: string) => (v && v.trim() ? v : null)
+// PUT - save drag-and-drop order: { ids: ["3", "1", "2"] } (first = top)
+export const onRequestPut = handle(async (sql, ctx) => {
+  const b = await readBody<{ ids?: string[] }>(ctx)
+  if (!Array.isArray(b.ids) || b.ids.length === 0) return badRequest('Missing ids')
+  await sql`SELECT reorder_series(${b.ids}::bigint[])`
+})
 
-// POST = add (no s_id) or update (with s_id)
-export async function onRequestPost(context: { request: Request; env: Env }) {
-  const b = (await context.request.json()) as Body
-  const sql = neon(context.env.DATABASE_URL)
-  try {
-    const rows = await sql`
-      SELECT upsert_series(
-        ${b.s_id ?? null}::bigint,
-        ${b.s_name ?? null},
-        ${b.s_description ?? null},
-        ${b.s_location ?? null},
-        ${b.s_day ?? null}::int,
-        ${timeOrNull(b.s_start)}::time,
-        ${timeOrNull(b.s_end)}::time,
-        ${b.s_show_on_home ?? false}::boolean,
-        ${b.s_location_is_address ?? false}::boolean
-      ) AS id`
-    return Response.json({ id: rows[0].id })
-  } catch (err) {
-    return errorResponse(err)
-  }
-}
-
-// PUT = save drag-and-drop order: { ids: ["3", "1", "2"] } (first = top)
-export async function onRequestPut(context: { request: Request; env: Env }) {
-  const b = (await context.request.json()) as { ids?: string[] }
-  if (!Array.isArray(b.ids) || b.ids.length === 0) return new Response('Missing ids', { status: 400 })
-  const sql = neon(context.env.DATABASE_URL)
-  try {
-    await sql`SELECT reorder_series(${b.ids}::bigint[])`
-    return Response.json({ ok: true })
-  } catch (err) {
-    return errorResponse(err)
-  }
-}
-
-// DELETE /api/admin/series?id=3
-export async function onRequestDelete(context: { request: Request; env: Env }) {
-  const id = new URL(context.request.url).searchParams.get('id')
-  if (!id) return new Response('Missing id', { status: 400 })
-  const sql = neon(context.env.DATABASE_URL)
-  try {
-    await sql`SELECT delete_series(${id}::bigint)`
-    return Response.json({ ok: true })
-  } catch (err) {
-    return errorResponse(err)
-  }
-}
+// DELETE ?id=3
+export const onRequestDelete = handle(async (sql, ctx) => {
+  const id = urlParam(ctx, 'id')
+  if (!id) return badRequest('Missing id')
+  await sql`SELECT delete_series(${id}::bigint)`
+})

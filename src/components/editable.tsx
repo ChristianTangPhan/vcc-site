@@ -1,6 +1,6 @@
+// Wraps a section: editors get a ✏️ button that swaps the section for its editor
 import { useState, type ReactNode } from 'react'
 
-// Wraps something: shows a ✏️ button for editors; tapping it swaps in the editor
 export function Editable({
   canEdit,
   editor,
@@ -16,17 +16,13 @@ export function Editable({
 }) {
   const [open, setOpen] = useState(false)
 
-  if (canEdit && open) {
-    return <div className={`editable ${className}`}>{editor(() => setOpen(false))}</div>
-  }
-
   return (
     <div className={`editable ${className}`}>
-      {children}
-      {canEdit && (
-        <button type="button" className="edit-btn" onClick={() => setOpen(true)}>
-          {label}
-        </button>
+      {canEdit && open ? editor(() => setOpen(false)) : (
+        <>
+          {children}
+          {canEdit && <button type="button" className="edit-btn" onClick={() => setOpen(true)}>{label}</button>}
+        </>
       )}
     </div>
   )

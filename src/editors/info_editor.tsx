@@ -1,9 +1,10 @@
+// Edits a group of church-info fields (hero, about, footer, or announcement)
 import { useState, type FormEvent } from 'react'
 import type { Admin, ChurchInfo, InfoField } from '../types'
-import { finishAdmin, sendAdmin } from '../lib/admin'
+import { finishAdmin, sendAdmin } from '../lib/api'
 import { TextField } from '../components/text_field'
+import { FormActions } from '../components/form_actions'
 
-// Church info editor (announcement, hero, about, footer)
 export function InfoEditor({
   info,
   fields,
@@ -21,11 +22,13 @@ export function InfoEditor({
   const [form, setForm] = useState<ChurchInfo>(info)
   const [status, setStatus] = useState('')
 
+  const done = () => { onSaved(); onClose() }
+
   async function save(e: FormEvent) {
-    e.preventDefault() // stop the browser from reloading the page
+    e.preventDefault()
     setStatus('Saving…')
     const res = await sendAdmin(admin, '/api/admin/info', 'PUT', form)
-    await finishAdmin(res, admin, () => { onSaved(); onClose() }, setStatus)
+    await finishAdmin(res, admin, done, setStatus)
   }
 
   return (
@@ -39,11 +42,7 @@ export function InfoEditor({
           onChange={(v) => setForm((old) => ({ ...old, [f.key]: v }))}
         />
       ))}
-      <div className="admin-actions">
-        <button type="submit">Save</button>
-        <button type="button" className="secondary" onClick={onClose}>Cancel</button>
-        <span className="muted">{status}</span>
-      </div>
+      <FormActions status={status} onCancel={onClose} />
     </form>
   )
 }

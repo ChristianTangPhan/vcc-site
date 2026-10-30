@@ -1,74 +1,61 @@
+// One form for one-time events AND weekly series.
+// "Repeats every week" switches between them (and converts an existing one).
 import { useState, type FormEvent } from 'react'
-import type { Admin, EventRow, Preset, Series } from '../types'
-import { finishAdmin, sendAdmin } from '../lib/admin'
-import { addDays, dayNames, formatDateKey, formatTimeRange, fromKey, startOfDay, toKey } from '../lib/dates'
+import type { Admin, EditTarget, Site } from '../types'
+import { finishAdmin, sendAdmin } from '../lib/api'
+import { dayNames, formatDateKey, formatTimeRange, fromKey, nextDateFor, toKey } from '../lib/dates'
 import { TextField } from '../components/text_field'
 import { TimeField } from '../components/time_field'
 import { AddressCheck } from '../components/address_check'
+import { FormActions } from '../components/form_actions'
 
-// What's being edited: an existing event, an existing weekly series, or something new
-export type EditTarget =
-  | { kind: 'event'; event: EventRow }
-  | { kind: 'series'; series: Series; occurrence?: { dateKey: string; cancelled: boolean; reason: string | null } }
-  | { kind: 'new'; dateKey?: string; repeats?: boolean }
-
-// "2026-11-12" for the next date (today or later) that falls on s_day (1 = Sunday)
-function nextDateFor(sDay: number) {
-  const today = startOfDay(new Date())
-  return toKey(addDays(today, (sDay - 1 - today.getDay() + 7) % 7))
-}
-
-// One form for both one-time events and weekly series.
-// "Repeats every week" switches between them (and can convert an existing one).
 export function ItemEditor({
   target,
-  series,
-  presets,
+  site,
   admin,
-  onSaved,
-  onPresetsChanged,
   onClose,
 }: {
   target: EditTarget
-  series: Series[]
-  presets: Preset[]
+  site: Site
   admin: Admin
-  onSaved: () => void // reload events + series + cancellations
-  onPresetsChanged: () => void
   onClose: () => void
 }) {
-  const ev = target.kind === 'event' ? target.event : null
-  const sr = target.kind === 'series' ? target.series : null
+  const event = target.kind === 'event' ? target.event : null
+  const series = target.kind === 'series' ? target.series : null
+  const occurrence = target.kind === 'series' ? target.occurrence : undefined // the date it was opened from
   const isNew = target.kind === 'new'
 
+  // Date shown when it's (or becomes) a one-time event
   const startDate =
-    ev?.e_date ??
-    (target.kind === 'series' ? (target.occurrence?.dateKey ?? nextDateFor(target.series.s_day)) : null) ??
+    event?.e_date ??
+    occurrence?.dateKey ??
+    (series ? nextDateFor(series.s_day) : null) ??
     (target.kind === 'new' ? target.dateKey : undefined) ??
     toKey(new Date())
 
+  // ===== Form state =====
+
   const [form, setForm] = useState({
-    name: ev?.e_name ?? sr?.s_name ?? '',
-    description: ev?.e_description ?? sr?.s_description ?? '',
-    location: ev?.e_location ?? sr?.s_location ?? '',
-    start: isNew ? '19:00' : ((ev?.e_start ?? sr?.s_start)?.slice(0, 5) ?? ''), // '' = no time
-    end: isNew ? '20:00' : ((ev?.e_end ?? sr?.s_end)?.slice(0, 5) ?? ''),
+    name: event?.e_name ?? series?.s_name ?? '',
+    description: event?.e_description ?? series?.s_description ?? '',
+    location: event?.e_location ?? series?.s_location ?? '',
+    start: isNew ? '19:00' : ((event?.e_start ?? series?.s_start)?.slice(0, 5) ?? ''), // '' = no time
+    end: isNew ? '20:00' : ((event?.e_end ?? series?.s_end)?.slice(0, 5) ?? ''),
     date: startDate,
-    day: String(sr?.s_day ?? fromKey(startDate).getDay() + 1), // 1 = Sunday
+    day: String(series?.s_day ?? fromKey(startDate).getDay() + 1), // 1 = Sunday
   })
   const [repeats, setRepeats] = useState(target.kind === 'series' || (target.kind === 'new' && !!target.repeats))
-  const [isAddress, setIsAddress] = useState(ev?.e_location_is_address ?? sr?.s_location_is_address ?? false)
-  const [showOnHome, setShowOnHome] = useState(sr?.s_show_on_home ?? true)
-  const [cancelIds, setCancelIds] = useState<string[]>([]) // series to skip on this event's date
+  const [isAddress, setIsAddress] = useState(event?.e_location_is_address ?? series?.s_location_is_address ?? false)
+  const [showOnHome, setShowOnHome] = useState(series?.s_show_on_home ?? true)
+  const [cancelIds, setCancelIds] = useState<string[]>([]) // other series to skip on this event's date
   const [presetId, setPresetId] = useState('')
   const [saveAsPreset, setSaveAsPreset] = useState(false)
   const [presetLabel, setPresetLabel] = useState('')
-  const [reason, setReason] = useState('') // for "cancel this date"
+  const [reason, setReason] = useState('') // for "Cancel this date"
   const [status, setStatus] = useState('')
 
-  function set(key: keyof typeof form, value: string) {
-    setForm((f) => ({ ...f, [key]: value }))
-  }
+  const set = (key: keyof typeof form, value: string) => setForm((f) => ({ ...f, [key]: value }))
+  const done = () => { site.reload.calendar(); onClose() }
 
   // Turning "repeats" on uses the chosen date's weekday
   function toggleRepeats(on: boolean) {
@@ -76,15 +63,19 @@ export function ItemEditor({
     if (on && form.date) set('day', String(fromKey(form.date).getDay() + 1))
   }
 
-  // Other series on this event's date (to optionally skip that day)
-  const sameDaySeries =
-    !repeats && form.date
-      ? series.filter((s) => s.s_id !== sr?.s_id && s.s_day - 1 === fromKey(form.date).getDay())
-      : []
+  // Other weekly series on this event's date (offered under "Also cancel on this day")
+  const sameDaySeries = !repeats && form.date
+    ? site.series.filter((s) => s.s_id !== series?.s_id && s.s_day - 1 === fromKey(form.date).getDay())
+    : []
+
+  const toggleCancel = (sId: string) =>
+    setCancelIds((ids) => (ids.includes(sId) ? ids.filter((x) => x !== sId) : [...ids, sId]))
+
+  // ===== Presets =====
 
   function applyPreset(id: string) {
     setPresetId(id)
-    const p = presets.find((pr) => pr.ep_id === id)
+    const p = site.presets.find((pr) => pr.ep_id === id)
     if (!p) return
     setForm((f) => ({
       ...f,
@@ -99,13 +90,13 @@ export function ItemEditor({
   }
 
   async function deletePreset() {
-    const p = presets.find((pr) => pr.ep_id === presetId)
+    const p = site.presets.find((pr) => pr.ep_id === presetId)
     if (!p || !confirm(`Delete the preset "${p.ep_label}"? (Things already added stay.)`)) return
     const res = await sendAdmin(admin, `/api/admin/presets?id=${p.ep_id}`, 'DELETE')
-    await finishAdmin(res, admin, () => { setPresetId(''); onPresetsChanged() }, setStatus)
+    await finishAdmin(res, admin, () => { setPresetId(''); site.reload.presets() }, setStatus)
   }
 
-  const done = () => { onSaved(); onClose() }
+  // ===== Save / delete =====
 
   async function save(e: FormEvent) {
     e.preventDefault()
@@ -113,54 +104,47 @@ export function ItemEditor({
     if (!repeats && !form.date) return setStatus('Date is required')
     if (form.start && form.end && form.end <= form.start) return setStatus('End time must be after start time')
 
-    // Switching an existing one between weekly and one-time = make the new kind, then remove the old
-    if (sr && !repeats &&
-      !confirm(`"${sr.s_name}" will stop repeating: it becomes a one-time event on ${formatDateKey(form.date)}, and every other week is removed. Continue?`)) return
-    if (ev && repeats &&
-      !confirm(`"${ev.e_name}" will repeat every ${dayNames[Number(form.day) - 1]} instead of only ${formatDateKey(ev.e_date)}. Continue?`)) return
+    // Switching kinds = make the new kind, then remove the old one
+    if (series && !repeats && !confirm(
+      `"${series.s_name}" will stop repeating: it becomes a one-time event on ${formatDateKey(form.date)}, and every other week is removed. Continue?`,
+    )) return
+    if (event && repeats && !confirm(
+      `"${event.e_name}" will repeat every ${dayNames[Number(form.day) - 1]} instead of only ${formatDateKey(event.e_date)}. Continue?`,
+    )) return
 
     setStatus('Saving…')
-    const shared = {
-      description: form.description,
-      location: form.location,
-      start: form.start,
-      end: form.end,
-      isAddress,
-    }
 
-    let res: Response
-    if (repeats) {
-      res = await sendAdmin(admin, '/api/admin/series', 'POST', {
-        s_id: sr?.s_id ?? null,
-        s_name: form.name,
-        s_description: shared.description,
-        s_location: shared.location,
-        s_location_is_address: isAddress,
-        s_day: Number(form.day),
-        s_start: shared.start,
-        s_end: shared.end,
-        s_show_on_home: showOnHome,
-      })
-    } else {
-      res = await sendAdmin(admin, '/api/admin/events', 'POST', {
-        e_id: ev?.e_id ?? null,
-        e_name: form.name,
-        e_description: shared.description,
-        e_location: shared.location,
-        e_location_is_address: isAddress,
-        e_date: form.date,
-        e_start: shared.start,
-        e_end: shared.end,
-      })
-    }
+    // 1. Save as a series or an event
+    let res = repeats
+      ? await sendAdmin(admin, '/api/admin/series', 'POST', {
+          s_id: series?.s_id ?? null,
+          s_name: form.name,
+          s_description: form.description,
+          s_location: form.location,
+          s_location_is_address: isAddress,
+          s_day: Number(form.day),
+          s_start: form.start,
+          s_end: form.end,
+          s_show_on_home: showOnHome,
+        })
+      : await sendAdmin(admin, '/api/admin/events', 'POST', {
+          e_id: event?.e_id ?? null,
+          e_name: form.name,
+          e_description: form.description,
+          e_location: form.location,
+          e_location_is_address: isAddress,
+          e_date: form.date,
+          e_start: form.start,
+          e_end: form.end,
+        })
     if (!res.ok) return finishAdmin(res, admin, () => {}, setStatus)
 
-    // Remove the old one if the kind changed
-    if (sr && !repeats) res = await sendAdmin(admin, `/api/admin/series?id=${sr.s_id}`, 'DELETE')
-    if (ev && repeats) res = await sendAdmin(admin, `/api/admin/events?id=${ev.e_id}`, 'DELETE')
+    // 2. Remove the old one if it changed kind
+    if (series && !repeats) res = await sendAdmin(admin, `/api/admin/series?id=${series.s_id}`, 'DELETE')
+    if (event && repeats) res = await sendAdmin(admin, `/api/admin/events?id=${event.e_id}`, 'DELETE')
     if (!res.ok) return finishAdmin(res, admin, () => {}, setStatus)
 
-    // Skip the chosen series on this event's date
+    // 3. Skip the chosen series on this event's date
     if (!repeats) {
       for (const sId of cancelIds) {
         res = await sendAdmin(admin, '/api/admin/cancellations', 'POST', { s_id: sId, sc_date: form.date, sc_reason: form.name })
@@ -168,66 +152,66 @@ export function ItemEditor({
       }
     }
 
+    // 4. Save as a preset for next time
     if (saveAsPreset) {
       res = await sendAdmin(admin, '/api/admin/presets', 'POST', {
         ep_label: presetLabel.trim() || form.name,
         ep_name: form.name,
-        ep_description: shared.description,
-        ep_location: shared.location,
-        ep_start: shared.start,
-        ep_end: shared.end,
+        ep_description: form.description,
+        ep_location: form.location,
         ep_location_is_address: isAddress,
+        ep_start: form.start,
+        ep_end: form.end,
       })
       if (!res.ok) return finishAdmin(res, admin, () => {}, setStatus)
-      onPresetsChanged()
+      site.reload.presets()
     }
 
     done()
   }
 
   async function remove() {
-    if (ev) {
-      if (!confirm(`Delete "${ev.e_name}" on ${formatDateKey(ev.e_date)}?`)) return
+    if (event) {
+      if (!confirm(`Delete "${event.e_name}" on ${formatDateKey(event.e_date)}?`)) return
       setStatus('Deleting…')
-      const res = await sendAdmin(admin, `/api/admin/events?id=${ev.e_id}`, 'DELETE')
-      return finishAdmin(res, admin, done, setStatus)
-    }
-    if (sr) {
-      if (!confirm(`Delete "${sr.s_name}" for EVERY week? (To skip just one day, use "Cancel this date" instead.)`)) return
+      const res = await sendAdmin(admin, `/api/admin/events?id=${event.e_id}`, 'DELETE')
+      await finishAdmin(res, admin, done, setStatus)
+    } else if (series) {
+      if (!confirm(`Delete "${series.s_name}" for EVERY week? (To skip just one day, use "Cancel this date" instead.)`)) return
       setStatus('Deleting…')
-      const res = await sendAdmin(admin, `/api/admin/series?id=${sr.s_id}`, 'DELETE')
-      return finishAdmin(res, admin, done, setStatus)
+      const res = await sendAdmin(admin, `/api/admin/series?id=${series.s_id}`, 'DELETE')
+      await finishAdmin(res, admin, done, setStatus)
     }
   }
 
-  // Skip / restore just the date this series was opened from
-  const occ = target.kind === 'series' ? target.occurrence : undefined
+  // ===== Just this one date (series opened from a date) =====
+
   async function cancelDate() {
-    if (!sr || !occ) return
+    if (!series || !occurrence) return
     setStatus('Saving…')
-    const res = await sendAdmin(admin, '/api/admin/cancellations', 'POST', { s_id: sr.s_id, sc_date: occ.dateKey, sc_reason: reason })
-    await finishAdmin(res, admin, done, setStatus)
-  }
-  async function restoreDate() {
-    if (!sr || !occ) return
-    setStatus('Saving…')
-    const res = await sendAdmin(admin, `/api/admin/cancellations?s_id=${sr.s_id}&date=${occ.dateKey}`, 'DELETE')
+    const res = await sendAdmin(admin, '/api/admin/cancellations', 'POST', { s_id: series.s_id, sc_date: occurrence.dateKey, sc_reason: reason })
     await finishAdmin(res, admin, done, setStatus)
   }
 
-  const title = isNew ? 'Add' : repeats ? 'Edit weekly series' : 'Edit event'
+  async function restoreDate() {
+    if (!series || !occurrence) return
+    setStatus('Saving…')
+    const res = await sendAdmin(admin, `/api/admin/cancellations?s_id=${series.s_id}&date=${occurrence.dateKey}`, 'DELETE')
+    await finishAdmin(res, admin, done, setStatus)
+  }
+
+  // ===== Form =====
 
   return (
     <form className="admin-form inline-editor" onSubmit={save}>
-      <h3>{title}</h3>
+      <h3>{isNew ? 'Add' : repeats ? 'Edit weekly series' : 'Edit event'}</h3>
 
-      {/* Just this one date of a weekly series */}
-      {occ && (
+      {occurrence && (
         <div className="occurrence-box">
-          <strong>{formatDateKey(occ.dateKey)} only</strong>
-          {occ.cancelled ? (
+          <strong>{formatDateKey(occurrence.dateKey)} only</strong>
+          {occurrence.cancelled ? (
             <>
-              <p className="cal-cancelled">Cancelled{occ.reason ? `: ${occ.reason}` : ''}</p>
+              <p className="cal-cancelled">Cancelled{occurrence.reason ? `: ${occurrence.reason}` : ''}</p>
               <button type="button" className="small-btn" onClick={restoreDate}>Restore this date</button>
             </>
           ) : (
@@ -239,20 +223,16 @@ export function ItemEditor({
         </div>
       )}
 
-      {presets.length > 0 && (
+      {site.presets.length > 0 && (
         <div className="preset-row">
           <label>
             <span>Start from a preset</span>
             <select value={presetId} onChange={(e) => applyPreset(e.target.value)}>
               <option value="">— None —</option>
-              {presets.map((p) => (
-                <option key={p.ep_id} value={p.ep_id}>{p.ep_label}</option>
-              ))}
+              {site.presets.map((p) => <option key={p.ep_id} value={p.ep_id}>{p.ep_label}</option>)}
             </select>
           </label>
-          {presetId && (
-            <button type="button" className="link-btn" onClick={deletePreset}>Delete preset</button>
-          )}
+          {presetId && <button type="button" className="link-btn" onClick={deletePreset}>Delete preset</button>}
         </div>
       )}
 
@@ -267,9 +247,7 @@ export function ItemEditor({
         <label>
           <span>Day</span>
           <select value={form.day} onChange={(e) => set('day', e.target.value)}>
-            {dayNames.map((d, i) => (
-              <option key={d} value={i + 1}>Every {d}</option>
-            ))}
+            {dayNames.map((d, i) => <option key={d} value={i + 1}>Every {d}</option>)}
           </select>
         </label>
       ) : (
@@ -297,13 +275,7 @@ export function ItemEditor({
           <legend>Also cancel on this day</legend>
           {sameDaySeries.map((s) => (
             <label key={s.s_id} className="check">
-              <input
-                type="checkbox"
-                checked={cancelIds.includes(s.s_id)}
-                onChange={() =>
-                  setCancelIds((ids) => (ids.includes(s.s_id) ? ids.filter((x) => x !== s.s_id) : [...ids, s.s_id]))
-                }
-              />
+              <input type="checkbox" checked={cancelIds.includes(s.s_id)} onChange={() => toggleCancel(s.s_id)} />
               {s.s_name}{s.s_start || s.s_end ? ` (${formatTimeRange(s.s_start, s.s_end)})` : ''}
             </label>
           ))}
@@ -318,12 +290,7 @@ export function ItemEditor({
         <TextField label="Preset name (same name = update that preset)" value={presetLabel} onChange={setPresetLabel} />
       )}
 
-      <div className="admin-actions sticky-actions">
-        <button type="submit">Save</button>
-        <button type="button" className="secondary" onClick={onClose}>Cancel</button>
-        {(ev || sr) && <button type="button" className="danger" onClick={remove}>Delete</button>}
-        {status && <span className="muted status-text">{status}</span>}
-      </div>
+      <FormActions status={status} onCancel={onClose} onDelete={event || series ? remove : undefined} sticky />
     </form>
   )
 }

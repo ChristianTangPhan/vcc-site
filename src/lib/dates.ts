@@ -1,9 +1,12 @@
+// Date and time helpers. Dates are passed around as "2026-11-12" keys (local time).
 import type { View } from '../types'
 
 export const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
 export const shortDayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-// 24-hour to 12-hour: "19:00:00" -> "7:00 PM"
+// ===== Times =====
+
+// "19:00:00" -> "7:00 PM"
 export function formatTime(t: string) {
   const [h, m] = t.split(':').map(Number)
   const suffix = h >= 12 ? 'PM' : 'AM'
@@ -11,9 +14,8 @@ export function formatTime(t: string) {
   return `${hour}:${m.toString().padStart(2, '0')} ${suffix}`
 }
 
-// Times are optional. Returns null when there's nothing to show:
-//   both  -> "7:00 PM – 8:00 PM"   start only -> "Starts 7:00 PM"
-//   end only -> "Until 8:00 PM"     neither -> null
+// Optional start/end -> text, or null when there's nothing to show
+//   both -> "7:00 PM – 8:00 PM"   start only -> "Starts 7:00 PM"   end only -> "Until 8:00 PM"
 export function formatTimeRange(start: string | null | undefined, end: string | null | undefined) {
   if (start && end) return `${formatTime(start)} – ${formatTime(end)}`
   if (start) return `Starts ${formatTime(start)}`
@@ -21,14 +23,16 @@ export function formatTimeRange(start: string | null | undefined, end: string | 
   return null
 }
 
-// Date -> "2026-11-01" (local time, matches the DB's date text)
+// ===== Date keys =====
+
+// Date -> "2026-11-01"
 export function toKey(d: Date) {
   const mm = String(d.getMonth() + 1).padStart(2, '0')
   const dd = String(d.getDate()).padStart(2, '0')
   return `${d.getFullYear()}-${mm}-${dd}`
 }
 
-// "2026-11-01" -> Date (local time)
+// "2026-11-01" -> Date
 export function fromKey(k: string) {
   const [y, m, d] = k.split('-').map(Number)
   return new Date(y, m - 1, d)
@@ -38,6 +42,13 @@ export function fromKey(k: string) {
 export function formatDateKey(k: string) {
   return fromKey(k).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 }
+
+// Today -> "Thursday, November 12"
+export function formatToday() {
+  return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+}
+
+// ===== Date math =====
 
 export function startOfDay(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate())
@@ -52,16 +63,24 @@ export function startOfWeek(d: Date) {
   return addDays(d, -d.getDay())
 }
 
-// All dates the current view should show
+// Next date (today or later) that falls on sDay (1 = Sunday … 7 = Saturday), as a key
+export function nextDateFor(sDay: number) {
+  const today = startOfDay(new Date())
+  return toKey(addDays(today, (sDay - 1 - today.getDay() + 7) % 7))
+}
+
+// ===== Calendar views =====
+
+// Every date the view shows: week = Sunday through next Sunday (8 days),
+// month = full weeks covering the month
 export function getViewDays(anchor: Date, view: View) {
   let start: Date
   let count: number
 
   if (view === 'week') {
     start = startOfWeek(anchor)
-    count = 8 // Sunday through next Sunday
+    count = 8
   } else {
-    // Full weeks covering the month (Sunday before the 1st -> Saturday after the last day)
     const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1)
     const last = new Date(anchor.getFullYear(), anchor.getMonth() + 1, 0)
     start = startOfWeek(first)
@@ -72,12 +91,13 @@ export function getViewDays(anchor: Date, view: View) {
   return Array.from({ length: count }, (_, i) => addDays(start, i))
 }
 
+// "Oct 25 – Nov 1, 2026" (week) or "October 2026" (month)
 export function getViewTitle(anchor: Date, view: View) {
   if (view === 'month') {
     return anchor.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   }
   const s = startOfWeek(anchor)
-  const e = addDays(s, 7) // through next Sunday
+  const e = addDays(s, 7)
   const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   return `${fmt(s)} – ${fmt(e)}, ${e.getFullYear()}`
 }

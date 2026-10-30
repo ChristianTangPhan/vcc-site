@@ -1,9 +1,7 @@
-import { neon } from '@neondatabase/serverless'
+// GET /api/info - the single church info row (name, about, address, announcement…)
+import { handle } from '../_lib/db'
 
-type Env = { DATABASE_URL: string }
-
-export async function onRequestGet(context: { env: Env }) {
-  const sql = neon(context.env.DATABASE_URL)
+export const onRequestGet = handle(async (sql) => {
   const rows = await sql`SELECT * FROM get_church_info()`
-  return Response.json(rows[0] ?? null)
-}
+  return rows[0] ?? null
+})

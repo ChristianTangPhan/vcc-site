@@ -1,21 +1,31 @@
+// /admin: enter the admin key to unlock editing on this device (or log out)
 import { useState, type FormEvent } from 'react'
+import { getJson } from '../lib/api'
 
-// /admin when locked: password box
-function AdminLogin({ onLogin }: { onLogin: (key: string) => void }) {
+export function AdminPage({
+  unlocked,
+  onLogin,
+  onLogout,
+}: {
+  unlocked: boolean
+  onLogin: (key: string) => void
+  onLogout: () => void
+}) {
+  return unlocked ? <Unlocked onLogout={onLogout} /> : <Login onLogin={onLogin} />
+}
+
+// Password box
+function Login({ onLogin }: { onLogin: (key: string) => void }) {
   const [key, setKey] = useState('')
   const [status, setStatus] = useState('')
 
   async function submit(e: FormEvent) {
     e.preventDefault()
     setStatus('Checking…')
-    const res = await fetch('/api/admin/check', {
-      headers: { Authorization: `Bearer ${key.trim()}` },
-    })
-    if (res.ok) {
-      onLogin(key.trim())
-    } else {
-      setStatus('Wrong key')
-    }
+    let ok = true
+    await getJson('/api/admin/check', null, { key: key.trim(), onFail: () => { ok = false } })
+    if (ok) onLogin(key.trim())
+    else setStatus('Wrong key')
   }
 
   return (
@@ -35,29 +45,16 @@ function AdminLogin({ onLogin }: { onLogin: (key: string) => void }) {
   )
 }
 
-// /admin when already unlocked
-function AdminUnlocked({ onLogout }: { onLogout: () => void }) {
+// Already unlocked
+function Unlocked({ onLogout }: { onLogout: () => void }) {
   return (
     <section id="admin">
       <h2>Admin</h2>
-      <p>Editing is unlocked on this device. Look for the ✏️ buttons on the home page, and + Add event on the calendar.</p>
+      <p>Editing is unlocked on this device. Tap anything on the home page or calendar to edit it.</p>
       <div className="admin-actions">
         <a href="/" className="section-link">Go to home page →</a>
         <button type="button" className="secondary" onClick={onLogout}>Log out</button>
       </div>
     </section>
   )
-}
-
-// Shows the login box or the "unlocked" screen
-export function AdminPage({
-  unlocked,
-  onLogin,
-  onLogout,
-}: {
-  unlocked: boolean
-  onLogin: (key: string) => void
-  onLogout: () => void
-}) {
-  return unlocked ? <AdminUnlocked onLogout={onLogout} /> : <AdminLogin onLogin={onLogin} />
 }

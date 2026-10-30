@@ -1,4 +1,4 @@
-// Label + text box (or big text area)
+// Label + text box (or a bigger text area)
 export function TextField({
   label,
   value,
@@ -8,7 +8,7 @@ export function TextField({
 }: {
   label: string
   value: string
-  onChange: (v: string) => void
+  onChange: (value: string) => void
   type?: string
   multiline?: boolean
 }) {

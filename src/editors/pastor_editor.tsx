@@ -1,9 +1,10 @@
+// Add or edit one pastor (no pastor = adding a new one)
 import { useState, type FormEvent } from 'react'
 import type { Admin, Pastor } from '../types'
-import { finishAdmin, sendAdmin } from '../lib/admin'
+import { finishAdmin, sendAdmin } from '../lib/api'
 import { TextField } from '../components/text_field'
+import { FormActions } from '../components/form_actions'
 
-// Add or edit one pastor (no pastor passed = adding a new one)
 export function PastorEditor({
   pastor,
   admin,
@@ -23,20 +24,14 @@ export function PastorEditor({
   })
   const [status, setStatus] = useState('')
 
-  function set(key: keyof typeof form, value: string) {
-    setForm((f) => ({ ...f, [key]: value }))
-  }
-
+  const set = (key: keyof typeof form, value: string) => setForm((f) => ({ ...f, [key]: value }))
   const done = () => { onSaved(); onClose() }
 
   async function save(e: FormEvent) {
     e.preventDefault()
     if (!form.p_name.trim()) return setStatus('Name is required')
     setStatus('Saving…')
-    const res = await sendAdmin(admin, '/api/admin/pastors', 'POST', {
-      p_id: pastor?.p_id ?? null,
-      ...form,
-    })
+    const res = await sendAdmin(admin, '/api/admin/pastors', 'POST', { p_id: pastor?.p_id ?? null, ...form })
     await finishAdmin(res, admin, done, setStatus)
   }
 
@@ -54,12 +49,7 @@ export function PastorEditor({
       <TextField label="Phone" type="tel" value={form.p_phone_number} onChange={(v) => set('p_phone_number', v)} />
       <TextField label="Email" type="email" value={form.p_email} onChange={(v) => set('p_email', v)} />
       <TextField label="Photo link (e.g. /pastors/name.jpg)" value={form.p_image} onChange={(v) => set('p_image', v)} />
-      <div className="admin-actions">
-        <button type="submit">Save</button>
-        <button type="button" className="secondary" onClick={onClose}>Cancel</button>
-        {pastor && <button type="button" className="danger" onClick={remove}>Delete</button>}
-        <span className="muted">{status}</span>
-      </div>
+      <FormActions status={status} onCancel={onClose} onDelete={pastor && remove} />
     </form>
   )
 }

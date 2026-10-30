@@ -1,7 +1,7 @@
+// List that editors can reorder by dragging a ☰ handle.
+// Uses pointer events (not HTML drag-and-drop) so it works with touch on iPhone.
 import { useRef, useState, type PointerEvent, type ReactNode } from 'react'
 
-// List whose items can be reordered by dragging a ☰ handle.
-// Uses pointer events (not HTML drag-and-drop) so it works with touch on iPhone.
 export function DragList<T>({
   items,
   getKey,
@@ -18,7 +18,6 @@ export function DragList<T>({
   // While dragging, show this local order instead of `items`
   const [dragging, setDragging] = useState<{ key: string; list: T[] } | null>(null)
   const rowRefs = useRef(new Map<string, HTMLDivElement>())
-
   const list = dragging?.list ?? items
 
   function start(e: PointerEvent<HTMLButtonElement>, key: string) {
@@ -29,27 +28,23 @@ export function DragList<T>({
 
   function move(e: PointerEvent<HTMLButtonElement>) {
     if (!dragging) return
-    const y = e.clientY
-    const others = dragging.list.filter((it) => getKey(it) !== dragging.key)
     const dragged = dragging.list.find((it) => getKey(it) === dragging.key)
     if (!dragged) return
+    const others = dragging.list.filter((it) => it !== dragged)
 
     // New spot = how many other rows have their middle above the finger
-    let index = 0
-    for (const it of others) {
+    const index = others.filter((it) => {
       const rect = rowRefs.current.get(getKey(it))?.getBoundingClientRect()
-      if (rect && rect.top + rect.height / 2 < y) index++
-    }
+      return rect && rect.top + rect.height / 2 < e.clientY
+    }).length
 
     const next = [...others.slice(0, index), dragged, ...others.slice(index)]
-    const changed = next.some((it, i) => getKey(it) !== getKey(dragging.list[i]))
-    if (changed) setDragging({ key: dragging.key, list: next })
+    if (next.some((it, i) => it !== dragging.list[i])) setDragging({ key: dragging.key, list: next })
   }
 
   function end() {
     if (!dragging) return
-    const moved = dragging.list.some((it, i) => getKey(it) !== getKey(items[i]))
-    if (moved) onReorder(dragging.list)
+    if (dragging.list.some((it, i) => it !== items[i])) onReorder(dragging.list)
     setDragging(null)
   }
 
@@ -57,7 +52,7 @@ export function DragList<T>({
     <div className="drag-list">
       {list.map((item) => {
         const key = getKey(item)
-        const handle = enabled ? (
+        const handle = enabled && (
           <button
             type="button"
             className="drag-handle"
@@ -70,15 +65,11 @@ export function DragList<T>({
           >
             ☰
           </button>
-        ) : null
-
+        )
         return (
           <div
             key={key}
-            ref={(el) => {
-              if (el) rowRefs.current.set(key, el)
-              else rowRefs.current.delete(key)
-            }}
+            ref={(el) => { if (el) rowRefs.current.set(key, el); else rowRefs.current.delete(key) }}
             className={`drag-row ${dragging?.key === key ? 'is-dragging' : ''}`}
           >
             {renderItem(item, handle)}

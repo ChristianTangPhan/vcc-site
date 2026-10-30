@@ -1,6 +1,5 @@
-import type { InfoField } from '../types'
-
 // Which church-info fields each ✏️ button edits
+import type { InfoField } from '../types'
 
 export const announcementFields: InfoField[] = [
   { key: 'i_announcement', label: 'Announcement (leave empty to hide the yellow banner)', multiline: true },

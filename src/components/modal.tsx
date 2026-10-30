@@ -1,13 +1,13 @@
+// Popup over the page. ✕ stays pinned at the top while the content scrolls,
+// and it always fits on screen (even with iPhone Safari's toolbars).
 import { useEffect, type ReactNode } from 'react'
 
-// Popup over the page. The ✕ stays pinned at the top while the content scrolls,
-// and the popup always fits on screen (even with iPhone Safari's toolbars).
 export function Modal({ onClose, children }: { onClose: () => void; children: ReactNode }) {
-  // Stop the page behind from scrolling while the popup is open
+  // Stop the page behind from scrolling while open
   useEffect(() => {
-    const prev = document.body.style.overflow
+    const previous = document.body.style.overflow
     document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = prev }
+    return () => { document.body.style.overflow = previous }
   }, [])
 
   return (

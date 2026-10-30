@@ -1,10 +1,10 @@
-// "This is a real address" checkbox under a Location box
+// "This is a real address" checkbox under a Location box (turns it into a map link)
 export function AddressCheck({
   checked,
   onChange,
 }: {
   checked: boolean
-  onChange: (v: boolean) => void
+  onChange: (checked: boolean) => void
 }) {
   return (
     <label className="check address-check">
