@@ -11,6 +11,16 @@ export function formatTime(t: string) {
   return `${hour}:${m.toString().padStart(2, '0')} ${suffix}`
 }
 
+// Times are optional. Returns null when there's nothing to show:
+//   both  -> "7:00 PM – 8:00 PM"   start only -> "Starts 7:00 PM"
+//   end only -> "Until 8:00 PM"     neither -> null
+export function formatTimeRange(start: string | null | undefined, end: string | null | undefined) {
+  if (start && end) return `${formatTime(start)} – ${formatTime(end)}`
+  if (start) return `Starts ${formatTime(start)}`
+  if (end) return `Until ${formatTime(end)}`
+  return null
+}
+
 // Date -> "2026-11-01" (local time, matches the DB's date text)
 export function toKey(d: Date) {
   const mm = String(d.getMonth() + 1).padStart(2, '0')

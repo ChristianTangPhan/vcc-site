@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import type { Admin, Preset } from '../types'
 import { finishAdmin, sendAdmin } from '../lib/admin'
-import { formatTime } from '../lib/dates'
+import { formatTimeRange } from '../lib/dates'
 import { TextField } from '../components/text_field'
+import { TimeField } from '../components/time_field'
 
 // Form to add or edit one preset (no preset passed = adding a new one)
 function PresetForm({
@@ -33,7 +34,7 @@ function PresetForm({
   async function save(e: FormEvent) {
     e.preventDefault()
     if (!form.ep_label.trim()) return setStatus('Preset name is required')
-    if (form.ep_end <= form.ep_start) return setStatus('End time must be after start time')
+    if (form.ep_start && form.ep_end && form.ep_end <= form.ep_start) return setStatus('End time must be after start time')
     setStatus('Saving…')
 
     // Existing preset -> PUT (edit by id, allows renaming); new -> POST
@@ -49,8 +50,8 @@ function PresetForm({
       <TextField label="Preset name (shown in the dropdown)" value={form.ep_label} onChange={(v) => set('ep_label', v)} />
       <TextField label="Event name" value={form.ep_name} onChange={(v) => set('ep_name', v)} />
       <div className="admin-row">
-        <TextField label="Start" type="time" value={form.ep_start} onChange={(v) => set('ep_start', v)} />
-        <TextField label="End" type="time" value={form.ep_end} onChange={(v) => set('ep_end', v)} />
+        <TimeField label="Start" value={form.ep_start} onChange={(v) => set('ep_start', v)} />
+        <TimeField label="End" value={form.ep_end} onChange={(v) => set('ep_end', v)} />
       </div>
       <TextField label="Location" value={form.ep_location} onChange={(v) => set('ep_location', v)} />
       <TextField label="Description (optional)" multiline value={form.ep_description} onChange={(v) => set('ep_description', v)} />
@@ -102,8 +103,7 @@ export function PresetManager({
             <div>
               <div className="cal-name">{p.ep_label}</div>
               <div className="cal-time">
-                {p.ep_start && p.ep_end ? `${formatTime(p.ep_start)} – ${formatTime(p.ep_end)}` : ''}
-                {p.ep_location ? ` · ${p.ep_location}` : ''}
+                {[formatTimeRange(p.ep_start, p.ep_end), p.ep_location].filter(Boolean).join(' · ')}
               </div>
             </div>
             <div className="preset-item-actions">

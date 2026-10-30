@@ -3,6 +3,7 @@ import type { Admin, Series } from '../types'
 import { finishAdmin, sendAdmin } from '../lib/admin'
 import { dayNames } from '../lib/dates'
 import { TextField } from '../components/text_field'
+import { TimeField } from '../components/time_field'
 
 // Add or edit one weekly series (no series passed = adding a new one)
 export function SeriesEditor({
@@ -21,8 +22,8 @@ export function SeriesEditor({
     s_description: series?.s_description ?? '',
     s_location: series?.s_location ?? '',
     s_day: String(series?.s_day ?? 1),
-    s_start: series?.s_start?.slice(0, 5) ?? '10:00', // "10:30:00" -> "10:30" for the time box
-    s_end: series?.s_end?.slice(0, 5) ?? '11:00',
+    s_start: series ? (series.s_start?.slice(0, 5) ?? '') : '10:00', // "10:30:00" -> "10:30"; '' = no time
+    s_end: series ? (series.s_end?.slice(0, 5) ?? '') : '11:00',
   })
   const [showOnHome, setShowOnHome] = useState(series?.s_show_on_home ?? true)
   const [status, setStatus] = useState('')
@@ -36,7 +37,7 @@ export function SeriesEditor({
   async function save(e: FormEvent) {
     e.preventDefault()
     if (!form.s_name.trim()) return setStatus('Name is required')
-    if (form.s_end <= form.s_start) return setStatus('End time must be after start time')
+    if (form.s_start && form.s_end && form.s_end <= form.s_start) return setStatus('End time must be after start time')
     setStatus('Saving…')
     const res = await sendAdmin(admin, '/api/admin/series', 'POST', {
       s_id: series?.s_id ?? null,
@@ -67,8 +68,8 @@ export function SeriesEditor({
         </select>
       </label>
       <div className="admin-row">
-        <TextField label="Start" type="time" value={form.s_start} onChange={(v) => set('s_start', v)} />
-        <TextField label="End" type="time" value={form.s_end} onChange={(v) => set('s_end', v)} />
+        <TimeField label="Start" value={form.s_start} onChange={(v) => set('s_start', v)} />
+        <TimeField label="End" value={form.s_end} onChange={(v) => set('s_end', v)} />
       </div>
       <TextField label="Location" value={form.s_location} onChange={(v) => set('s_location', v)} />
       <TextField label="Description (optional)" multiline value={form.s_description} onChange={(v) => set('s_description', v)} />

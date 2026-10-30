@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Admin, CalItem, ChurchInfo, EditInfo, GetItems, Pastor, Preset, Series } from '../types'
-import { dayNames, formatTime, startOfDay, toKey } from '../lib/dates'
+import { dayNames, formatTimeRange, startOfDay, toKey } from '../lib/dates'
 import { finishAdmin, sendAdmin } from '../lib/admin'
 import { aboutFields, heroFields } from '../lib/info_fields'
 import { Editable } from '../components/editable'
@@ -147,7 +147,7 @@ export function HomePage({
           >
             <div className={`card ${s.s_show_on_home ? '' : 'hidden-series'}`}>
               <h3>{s.s_name}</h3>
-              <p>{dayNames[s.s_day - 1]} · {formatTime(s.s_start)} – {formatTime(s.s_end)}</p>
+              <p>{[dayNames[s.s_day - 1], formatTimeRange(s.s_start, s.s_end)].filter(Boolean).join(' · ')}</p>
               <p className="muted">{s.s_location}</p>
               {s.s_description && <p>{s.s_description}</p>}
               {!s.s_show_on_home && <p className="hidden-tag">Not shown on home (calendar only)</p>}

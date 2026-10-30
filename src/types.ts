@@ -17,8 +17,8 @@ export type Series = {
   s_description: string | null
   s_location: string
   s_day: number // 1 = Sunday ... 7 = Saturday
-  s_start: string
-  s_end: string
+  s_start: string | null // null = no start time
+  s_end: string | null   // null = no end time
   s_show_on_home: boolean // listed under "Service Times" on the home page
 }
 
@@ -36,8 +36,8 @@ export type EventRow = {
   e_description: string | null
   e_location: string | null
   e_date: string // "2026-11-12"
-  e_start: string
-  e_end: string
+  e_start: string | null
+  e_end: string | null
 }
 
 export type Preset = {
@@ -72,8 +72,8 @@ export type CalItem = {
   name: string
   location: string | null
   description: string | null
-  start: string
-  end: string
+  start: string | null
+  end: string | null
   cancelled: boolean
   reason: string | null
 }

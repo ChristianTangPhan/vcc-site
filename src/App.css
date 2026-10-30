@@ -660,3 +660,23 @@ footer p { margin: 4px 0; }
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ===================================================== */
+/* ===== Optional time boxes (Clear button) ===== */
+/* ===================================================== */
+.admin-form .time-field span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.time-clear {
+  background: none;
+  border: none;
+  color: var(--brand-dark);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+.time-field small { font-size: 0.75rem; font-style: italic; }

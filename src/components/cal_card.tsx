@@ -1,5 +1,5 @@
 import type { CalItem } from '../types'
-import { formatTime } from '../lib/dates'
+import { formatTimeRange } from '../lib/dates'
 
 // One service/event card (used on Today and the calendar)
 export function CalCard({
@@ -13,6 +13,8 @@ export function CalCard({
   detailed?: boolean  // popup: also show the description
   onClick?: () => void
 }) {
+  const time = formatTimeRange(item.start, item.end) // null when there are no times
+
   return (
     <div
       className={`cal-card ${item.kind} ${item.cancelled ? 'cancelled' : ''} ${onClick ? 'clickable' : ''}`}
@@ -23,11 +25,7 @@ export function CalCard({
     >
       <div className="cal-name">{item.name}</div>
       {!compact && item.location && <div className="cal-location">{item.location}</div>}
-      {!compact && (
-        <div className="cal-time">
-          {formatTime(item.start)} – {formatTime(item.end)}
-        </div>
-      )}
+      {!compact && time && <div className="cal-time">{time}</div>}
       {!compact && item.cancelled && (
         <div className="cal-cancelled">
           Cancelled{item.reason ? `: ${item.reason}` : ''}

@@ -1,8 +1,9 @@
 import { useState, type FormEvent } from 'react'
 import type { Admin, EventRow, Preset, Series } from '../types'
 import { finishAdmin, sendAdmin } from '../lib/admin'
-import { formatDateKey, formatTime, fromKey, toKey } from '../lib/dates'
+import { formatDateKey, formatTimeRange, fromKey, toKey } from '../lib/dates'
 import { TextField } from '../components/text_field'
+import { TimeField } from '../components/time_field'
 
 // Add or edit one event, with presets and "also cancel this day's series"
 export function EventEditor({
@@ -29,8 +30,8 @@ export function EventEditor({
     e_description: event?.e_description ?? '',
     e_location: event?.e_location ?? '',
     e_date: event?.e_date ?? initialDate ?? toKey(new Date()),
-    e_start: event?.e_start?.slice(0, 5) ?? '19:00',
-    e_end: event?.e_end?.slice(0, 5) ?? '20:00',
+    e_start: event ? (event.e_start?.slice(0, 5) ?? '') : '19:00', // '' = no time
+    e_end: event ? (event.e_end?.slice(0, 5) ?? '') : '20:00',
   })
   const [presetId, setPresetId] = useState('')
   const [cancelIds, setCancelIds] = useState<string[]>([]) // series to cancel on this date
@@ -57,8 +58,8 @@ export function EventEditor({
       e_name: p.ep_name ?? '',
       e_description: p.ep_description ?? '',
       e_location: p.ep_location ?? '',
-      e_start: p.ep_start?.slice(0, 5) ?? f.e_start,
-      e_end: p.ep_end?.slice(0, 5) ?? f.e_end,
+      e_start: p.ep_start?.slice(0, 5) ?? '', // preset with no time -> leave empty
+      e_end: p.ep_end?.slice(0, 5) ?? '',
     }))
     setPresetLabel(p.ep_label)
   }
@@ -71,7 +72,7 @@ export function EventEditor({
     e.preventDefault()
     if (!form.e_name.trim()) return setStatus('Name is required')
     if (!form.e_date) return setStatus('Date is required')
-    if (form.e_end <= form.e_start) return setStatus('End time must be after start time')
+    if (form.e_start && form.e_end && form.e_end <= form.e_start) return setStatus('End time must be after start time')
     setStatus('Saving…')
 
     // 1. The event itself
@@ -147,8 +148,8 @@ export function EventEditor({
       <TextField label="Date" type="date" value={form.e_date} onChange={(v) => set('e_date', v)} />
       <TextField label="Name" value={form.e_name} onChange={(v) => set('e_name', v)} />
       <div className="admin-row">
-        <TextField label="Start" type="time" value={form.e_start} onChange={(v) => set('e_start', v)} />
-        <TextField label="End" type="time" value={form.e_end} onChange={(v) => set('e_end', v)} />
+        <TimeField label="Start" value={form.e_start} onChange={(v) => set('e_start', v)} />
+        <TimeField label="End" value={form.e_end} onChange={(v) => set('e_end', v)} />
       </div>
       <TextField label="Location (house, restaurant…)" value={form.e_location} onChange={(v) => set('e_location', v)} />
       <TextField label="Description (optional)" multiline value={form.e_description} onChange={(v) => set('e_description', v)} />
@@ -163,7 +164,7 @@ export function EventEditor({
                 checked={cancelIds.includes(s.s_id)}
                 onChange={() => toggleCancel(s.s_id)}
               />
-              {s.s_name} ({formatTime(s.s_start)})
+              {s.s_name}{s.s_start || s.s_end ? ` (${formatTimeRange(s.s_start, s.s_end)})` : ''}
             </label>
           ))}
         </fieldset>

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Admin, CalItem } from '../types'
 import { finishAdmin, sendAdmin } from '../lib/admin'
-import { formatDateKey, formatTime } from '../lib/dates'
+import { formatDateKey, formatTimeRange } from '../lib/dates'
 import { TextField } from '../components/text_field'
 
 // Cancel or restore ONE date of a weekly series
@@ -45,7 +45,7 @@ export function OccurrenceEditor({
     <div className="admin-form inline-editor">
       <h3>{item.name}</h3>
       <p className="muted">
-        {formatDateKey(item.dateKey)} · {formatTime(item.start)} – {formatTime(item.end)}
+        {[formatDateKey(item.dateKey), formatTimeRange(item.start, item.end)].filter(Boolean).join(' · ')}
       </p>
 
       {item.cancelled ? (

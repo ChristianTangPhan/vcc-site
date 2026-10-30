@@ -222,7 +222,8 @@ function App() {
 
     return [...seriesItems, ...eventItems]
       .filter((it) => admin || !it.cancelled) // visitors don't see cancelled dates; editors do (to restore them)
-      .sort((a, b) => a.start.localeCompare(b.start))
+      // Untimed items first, then by start (or end, if there's only an end time)
+      .sort((a, b) => (a.start ?? a.end ?? '').localeCompare(b.start ?? b.end ?? ''))
   }
 
   // ===== Nav + announcement =====
