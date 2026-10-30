@@ -376,6 +376,13 @@ footer {
   text-align: center;
 }
 footer p { margin: 4px 0; }
+.footer-admin {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--border);
+  font-size: 0.75rem;
+  text-decoration: none;
+}
 
 
 /* ===== 11. Calendar page ===== */
