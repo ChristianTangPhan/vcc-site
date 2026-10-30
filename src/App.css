@@ -705,3 +705,25 @@ footer p { margin: 4px 0; }
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
   border-color: var(--brand);
 }
+
+/* ===================================================== */
+/* ===== Copy location button + tappable home cards ===== */
+/* ===================================================== */
+.location-line { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.copy-btn {
+  background: #fff;
+  border: 1px solid #d5d2cc;
+  border-radius: 6px;
+  padding: 0 6px;
+  font: inherit;
+  font-style: normal;
+  font-size: 0.8rem;
+  line-height: 1.6;
+  color: var(--brand-dark);
+  cursor: pointer;
+}
+.copy-btn.copied { border-color: var(--brand); font-weight: 600; }
+
+.clickable-card { cursor: pointer; }
+.clickable-card:hover { filter: brightness(0.98); }
+#today .cal-card { cursor: pointer; }

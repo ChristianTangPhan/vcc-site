@@ -1,5 +1,6 @@
 import type { CalItem } from '../types'
 import { formatTimeRange } from '../lib/dates'
+import { LocationLine } from './copy_button'
 
 // One service/event card (used on Today and the calendar)
 export function CalCard({
@@ -24,7 +25,7 @@ export function CalCard({
       onKeyDown={onClick ? (e) => { if (e.key === 'Enter') onClick() } : undefined}
     >
       <div className="cal-name">{item.name}</div>
-      {!compact && item.location && <div className="cal-location">{item.location}</div>}
+      {!compact && item.location && <div className="cal-location"><LocationLine text={item.location} /></div>}
       {!compact && time && <div className="cal-time">{time}</div>}
       {!compact && item.cancelled && (
         <div className="cal-cancelled">

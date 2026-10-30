@@ -6,6 +6,8 @@ import { aboutFields, heroFields } from '../lib/info_fields'
 import { Editable } from '../components/editable'
 import { DragList } from '../components/drag_list'
 import { CalCard } from '../components/cal_card'
+import { Modal } from '../components/modal'
+import { LocationLine } from '../components/copy_button'
 import { SeriesEditor } from '../editors/series_editor'
 import { PastorEditor } from '../editors/pastor_editor'
 import { EventEditor } from '../editors/event_editor'
@@ -47,6 +49,33 @@ export function HomePage({
   const [addingSeries, setAddingSeries] = useState(false)
   const [addingPastor, setAddingPastor] = useState(false)
   const [addingEvent, setAddingEvent] = useState(false)
+
+  // Details popup: heading line (date or "Every Sunday") + the card
+  const [details, setDetails] = useState<{ heading: string; item: CalItem } | null>(null)
+
+  function openToday(it: CalItem) {
+    setDetails({ heading: 'Today', item: it })
+  }
+
+  // A weekly series shown as a card in the popup
+  function openSeries(s: Series) {
+    setDetails({
+      heading: `Every ${dayNames[s.s_day - 1]}`,
+      item: {
+        id: `s-${s.s_id}`,
+        kind: 'series',
+        refId: s.s_id,
+        dateKey: '',
+        name: s.s_name,
+        location: s.s_location,
+        description: s.s_description,
+        start: s.s_start,
+        end: s.s_end,
+        cancelled: false,
+        reason: null,
+      },
+    })
+  }
 
   // Visitors only see series marked "show on home"; editors see all (to edit the hidden ones)
   const listedSeries = admin ? series : series.filter((s) => s.s_show_on_home)
@@ -95,7 +124,7 @@ export function HomePage({
             const label = restoring ? 'Restore' : it.kind === 'series' ? 'Cancel today' : 'Delete event'
             return (
               <div className="today-item" key={it.id}>
-                <CalCard item={it} />
+                <CalCard item={it} onClick={() => openToday(it)} />
                 {admin && (
                   <button
                     type="button"
@@ -155,10 +184,16 @@ export function HomePage({
                   admin && <SeriesEditor series={s} admin={admin} onSaved={reloadSeries} onClose={close} />
                 }
               >
-                <div className={`card ${s.s_show_on_home ? '' : 'hidden-series'}`}>
+                <div
+                  className={`card clickable-card ${s.s_show_on_home ? '' : 'hidden-series'}`}
+                  onClick={() => openSeries(s)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter') openSeries(s) }}
+                >
                   <h3>{s.s_name}</h3>
                   <p>{[dayNames[s.s_day - 1], formatTimeRange(s.s_start, s.s_end)].filter(Boolean).join(' · ')}</p>
-                  <p className="muted">{s.s_location}</p>
+                  {s.s_location && <p className="muted"><LocationLine text={s.s_location} /></p>}
                   {s.s_description && <p>{s.s_description}</p>}
                   {!s.s_show_on_home && <p className="hidden-tag">Not shown on home (calendar only)</p>}
                 </div>
@@ -218,6 +253,13 @@ export function HomePage({
           <p className="about-text">{info?.i_about}</p>
         </Editable>
       </section>
+
+      {details && (
+        <Modal onClose={() => setDetails(null)}>
+          <p className="muted modal-date">{details.heading}</p>
+          <CalCard item={details.item} detailed />
+        </Modal>
+      )}
     </>
   )
 }
