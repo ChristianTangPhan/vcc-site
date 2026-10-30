@@ -1,4 +1,4 @@
-// Sticky top bar: church short name, ↻ refresh, and the page links
+// Sticky top bar: church short name, Edit (→ /admin), ↻ refresh, and the page links
 import type { MouseEvent } from 'react'
 import type { ChurchInfo, LoadStatus } from '../types'
 
@@ -27,16 +27,19 @@ export function Header({
     <header className="nav">
       <div className="nav-top">
         <a href="/" className="nav-title" onClick={goHome}>{info?.i_abrv ?? info?.i_name}</a>
-        <button
-          type="button"
-          className={`refresh-btn ${status === 'loading' ? 'spinning' : ''}`}
-          onClick={onRefresh}
-          disabled={status === 'loading'}
-          aria-label="Refresh"
-          title="Refresh"
-        >
-          ↻
-        </button>
+        <div className="nav-tools">
+          <a href="/admin" className="nav-admin">Edit</a>
+          <button
+            type="button"
+            className={`refresh-btn ${status === 'loading' ? 'spinning' : ''}`}
+            onClick={onRefresh}
+            disabled={status === 'loading'}
+            aria-label="Refresh"
+            title="Refresh"
+          >
+            ↻
+          </button>
+        </div>
       </div>
       <nav>
         <a href="/" onClick={goHome} className={page === 'home' ? 'active' : ''}>Home</a>

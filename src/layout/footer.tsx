@@ -1,4 +1,4 @@
-// Footer: address (map link), phone, email, social links, and a faint Admin link
+// Footer: address (map link), phone, email, social links
 import type { ChurchInfo, EditInfo } from '../types'
 import { contactFields } from '../lib/info_fields'
 import { mapsUrl } from '../lib/maps'
@@ -32,8 +32,6 @@ export function Footer({
         </p>
         <p className="muted">© {new Date().getFullYear()} {info?.i_name}</p>
       </Editable>
-      {/* Way into /admin from the home-screen app (it has no address bar) */}
-      <a href="/admin" className="footer-admin">Admin</a>
     </footer>
   )
 }

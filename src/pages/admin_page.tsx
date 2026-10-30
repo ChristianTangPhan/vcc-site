@@ -53,7 +53,7 @@ function Unlocked({ onLogout }: { onLogout: () => void }) {
       <p>Editing is unlocked on this device. Tap anything on the home page or calendar to edit it.</p>
       <div className="admin-actions">
         <a href="/" className="section-link">Go to home page →</a>
-        <button type="button" className="secondary" onClick={onLogout}>Log out</button>
+        <button type="button" className="secondary" onClick={() => { onLogout(); window.location.href = '/' }}>Log out</button>
       </div>
     </section>
   )
