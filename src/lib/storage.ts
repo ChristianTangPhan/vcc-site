@@ -3,6 +3,7 @@
 
 export const STORAGE_KEYS = {
   adminKey: 'adminKey',
+  viewMode: 'viewMode', // '1' = logged in but seeing the site like a visitor
   dismissedAnnouncement: 'dismissedAnnouncement',
 }
 

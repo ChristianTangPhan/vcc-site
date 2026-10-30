@@ -29,9 +29,12 @@ function App() {
 
   const [adminKey, setAdminKey] = useState(() => readStorage(STORAGE_KEYS.adminKey))
 
+  const [viewMode, setViewMode] = useState(() => readStorage(STORAGE_KEYS.viewMode) === '1')
+
   // Save the key, then go to the home page to edit
   function login(key: string) {
     writeStorage(STORAGE_KEYS.adminKey, key)
+    removeStorage(STORAGE_KEYS.viewMode) // fresh login starts in Edit mode
     setAdminKey(key)
     window.location.href = '/'
   }
@@ -41,7 +44,15 @@ function App() {
     setAdminKey(null)
   }
 
-  const admin: Admin | null = adminKey ? { key: adminKey, logout } : null
+  // View mode: logged in, but the pages get no admin so they look like a visitor's
+  function setEditing(editing: boolean) {
+    if (editing) removeStorage(STORAGE_KEYS.viewMode)
+    else writeStorage(STORAGE_KEYS.viewMode, '1')
+    setViewMode(!editing)
+  }
+
+  const loggedIn = !!adminKey
+  const admin: Admin | null = adminKey && !viewMode ? { key: adminKey, logout } : null
 
   // ===== Data =====
 
@@ -74,10 +85,10 @@ function App() {
     <>
       <Header info={info} page={page} status={site.status} onRefresh={site.refresh} />
       <LoadBar status={site.status} onRetry={site.refresh} />
-      {admin && <AdminBar onLogout={logout} />}
+      {loggedIn && <AdminBar editing={!viewMode} onChange={setEditing} />}
       <Announcement info={info} canEdit={canEditInfo} editInfo={editInfo} />
 
-      {page === 'admin' && <AdminPage unlocked={!!admin} onLogin={login} onLogout={logout} />}
+      {page === 'admin' && <AdminPage unlocked={loggedIn} onLogin={login} onLogout={logout} />}
       {page === 'calendar' && <CalendarPage site={site} admin={admin} />}
       {page === 'home' && <HomePage site={site} admin={admin} canEditInfo={canEditInfo} editInfo={editInfo} />}
 
