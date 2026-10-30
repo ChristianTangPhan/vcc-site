@@ -25,7 +25,7 @@ export function CalCard({
       onKeyDown={onClick ? (e) => { if (e.key === 'Enter') onClick() } : undefined}
     >
       <div className="cal-name">{item.name}</div>
-      {!compact && item.location && <div className="cal-location"><LocationLine text={item.location} isAddress={item.locationIsAddress} /></div>}
+      {!compact && item.location && <div className="cal-location"><LocationLine text={item.location} isAddress={item.locationIsAddress} showCopy={!!detailed} /></div>}
       {!compact && time && <div className="cal-time">{time}</div>}
       {!compact && item.cancelled && (
         <div className="cal-cancelled">

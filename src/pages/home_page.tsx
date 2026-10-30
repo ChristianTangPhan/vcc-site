@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Admin, CalItem, ChurchInfo, EditInfo, GetItems, Pastor, Preset, Series } from '../types'
+import type { Admin, CalItem, ChurchInfo, EditInfo, EventRow, GetItems, Pastor, Preset, Series } from '../types'
 import { dayNames, formatTimeRange, startOfDay, toKey } from '../lib/dates'
 import { finishAdmin, sendAdmin } from '../lib/admin'
 import { aboutFields, heroFields } from '../lib/info_fields'
@@ -15,6 +15,7 @@ import { EventEditor } from '../editors/event_editor'
 export function HomePage({
   info,
   series,
+  events,
   pastors,
   presets,
   getItems,
@@ -31,6 +32,7 @@ export function HomePage({
 }: {
   info: ChurchInfo | null
   series: Series[]
+  events: EventRow[]
   pastors: Pastor[]
   presets: Preset[]
   getItems: GetItems
@@ -49,6 +51,9 @@ export function HomePage({
   const [addingSeries, setAddingSeries] = useState(false)
   const [addingPastor, setAddingPastor] = useState(false)
   const [addingEvent, setAddingEvent] = useState(false)
+
+  // Event being edited from a Today card (opens in a popup)
+  const [editingEvent, setEditingEvent] = useState<EventRow | null>(null)
 
   // Details popup: heading line (date or "Every Sunday") + the card
   const [details, setDetails] = useState<{ heading: string; item: CalItem } | null>(null)
@@ -127,15 +132,28 @@ export function HomePage({
               <div className="today-item" key={it.id}>
                 <CalCard item={it} onClick={() => openToday(it)} />
                 {admin && (
-                  <button
-                    type="button"
-                    className={`quick-btn ${restoring ? 'restore' : ''}`}
-                    onClick={() => quickRemove(it)}
-                    aria-label={label}
-                    title={label}
-                  >
-                    {restoring ? '↺' : '−'}
-                  </button>
+                  <div className={`today-actions ${it.kind === 'event' ? 'two' : ''}`}>
+                    {it.kind === 'event' && (
+                      <button
+                        type="button"
+                        className="quick-btn edit"
+                        onClick={() => setEditingEvent(events.find((e) => e.e_id === it.refId) ?? null)}
+                        aria-label="Edit event"
+                        title="Edit event"
+                      >
+                        ✏️
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className={`quick-btn ${restoring ? 'restore' : ''}`}
+                      onClick={() => quickRemove(it)}
+                      aria-label={label}
+                      title={label}
+                    >
+                      {restoring ? '↺' : '−'}
+                    </button>
+                  </div>
                 )}
               </div>
             )
@@ -194,7 +212,7 @@ export function HomePage({
                 >
                   <h3>{s.s_name}</h3>
                   <p>{[dayNames[s.s_day - 1], formatTimeRange(s.s_start, s.s_end)].filter(Boolean).join(' · ')}</p>
-                  {s.s_location && <p className="muted"><LocationLine text={s.s_location} isAddress={s.s_location_is_address} /></p>}
+                  {s.s_location && <p className="muted"><LocationLine text={s.s_location} isAddress={s.s_location_is_address} showCopy={false} /></p>}
                   {s.s_description && <p>{s.s_description}</p>}
                   {!s.s_show_on_home && <p className="hidden-tag">Not shown on home (calendar only)</p>}
                 </div>
@@ -254,6 +272,20 @@ export function HomePage({
           <p className="about-text">{info?.i_about}</p>
         </Editable>
       </section>
+
+      {editingEvent && admin && (
+        <Modal onClose={() => setEditingEvent(null)}>
+          <EventEditor
+            event={editingEvent}
+            series={series}
+            presets={presets}
+            admin={admin}
+            onSaved={() => { reloadEvents(); reloadCancellations() }}
+            onPresetsChanged={reloadPresets}
+            onClose={() => setEditingEvent(null)}
+          />
+        </Modal>
+      )}
 
       {details && (
         <Modal onClose={() => setDetails(null)}>

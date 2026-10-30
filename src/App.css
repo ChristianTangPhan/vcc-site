@@ -568,13 +568,20 @@ footer p { margin: 4px 0; }
 /* ===== − / ↺ quick buttons on Today cards (editors) ===== */
 /* ===================================================== */
 .today-item { position: relative; }
-.today-item .cal-card { padding-right: 52px; }  /* room for the button */
+.today-item .cal-card { padding-right: 52px; }   /* room for one button */
+.today-item:has(.today-actions.two) .cal-card { padding-right: 92px; } /* room for ✏️ and − */
 
-.quick-btn {
+/* Buttons on the right side of a Today card (editors) */
+.today-actions {
   position: absolute;
   top: 50%;
   right: 10px;
-  transform: translateY(-50%);   /* centers it vertically */
+  transform: translateY(-50%);   /* centers them vertically */
+  display: flex;
+  gap: 6px;
+}
+
+.quick-btn {
   width: 32px;
   height: 32px;
   border-radius: 50%;
@@ -587,6 +594,7 @@ footer p { margin: 4px 0; }
   cursor: pointer;
   padding: 0;
 }
+.quick-btn.edit { border-color: #d5d2cc; font-size: 0.9rem; }
 .quick-btn.restore {
   color: var(--brand-dark);
   border-color: #d5d2cc;

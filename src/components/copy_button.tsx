@@ -42,10 +42,12 @@ export function CopyButton({ text, label = 'Copy' }: { text: string; label?: str
 export function LocationLine({
   text,
   isAddress,
+  showCopy = true,
   className = '',
 }: {
   text: string
   isAddress?: boolean
+  showCopy?: boolean // false on cards; the copy button only shows in popups
   className?: string
 }) {
   return (
@@ -63,7 +65,7 @@ export function LocationLine({
       ) : (
         <span>{text}</span>
       )}
-      <CopyButton text={text} label="Copy location" />
+      {showCopy && <CopyButton text={text} label="Copy location" />}
     </span>
   )
 }

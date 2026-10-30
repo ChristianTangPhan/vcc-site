@@ -350,6 +350,7 @@ function App() {
         <HomePage
           info={info}
           series={series}
+          events={events}
           pastors={pastors}
           presets={presets}
           getItems={getItems}
