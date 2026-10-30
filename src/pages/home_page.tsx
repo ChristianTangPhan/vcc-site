@@ -68,6 +68,7 @@ export function HomePage({
         dateKey: '',
         name: s.s_name,
         location: s.s_location,
+        locationIsAddress: !!s.s_location_is_address,
         description: s.s_description,
         start: s.s_start,
         end: s.s_end,
@@ -193,7 +194,7 @@ export function HomePage({
                 >
                   <h3>{s.s_name}</h3>
                   <p>{[dayNames[s.s_day - 1], formatTimeRange(s.s_start, s.s_end)].filter(Boolean).join(' · ')}</p>
-                  {s.s_location && <p className="muted"><LocationLine text={s.s_location} /></p>}
+                  {s.s_location && <p className="muted"><LocationLine text={s.s_location} isAddress={s.s_location_is_address} /></p>}
                   {s.s_description && <p>{s.s_description}</p>}
                   {!s.s_show_on_home && <p className="hidden-tag">Not shown on home (calendar only)</p>}
                 </div>

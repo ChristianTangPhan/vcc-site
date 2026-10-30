@@ -4,6 +4,7 @@ import { finishAdmin, sendAdmin } from '../lib/admin'
 import { formatDateKey, formatTimeRange, fromKey, toKey } from '../lib/dates'
 import { TextField } from '../components/text_field'
 import { TimeField } from '../components/time_field'
+import { AddressCheck } from '../components/address_check'
 
 // Add or edit one event, with presets and "also cancel this day's series"
 export function EventEditor({
@@ -33,6 +34,7 @@ export function EventEditor({
     e_start: event ? (event.e_start?.slice(0, 5) ?? '') : '19:00', // '' = no time
     e_end: event ? (event.e_end?.slice(0, 5) ?? '') : '20:00',
   })
+  const [isAddress, setIsAddress] = useState(event?.e_location_is_address ?? false)
   const [presetId, setPresetId] = useState('')
   const [cancelIds, setCancelIds] = useState<string[]>([]) // series to cancel on this date
   const [saveAsPreset, setSaveAsPreset] = useState(false)
@@ -61,6 +63,7 @@ export function EventEditor({
       e_start: p.ep_start?.slice(0, 5) ?? '', // preset with no time -> leave empty
       e_end: p.ep_end?.slice(0, 5) ?? '',
     }))
+    setIsAddress(!!p.ep_location_is_address)
     setPresetLabel(p.ep_label)
   }
 
@@ -79,6 +82,7 @@ export function EventEditor({
     let res = await sendAdmin(admin, '/api/admin/events', 'POST', {
       e_id: event?.e_id ?? null,
       ...form,
+      e_location_is_address: isAddress,
     })
     if (!res.ok) return finishAdmin(res, admin, () => {}, setStatus)
 
@@ -101,6 +105,7 @@ export function EventEditor({
         ep_location: form.e_location,
         ep_start: form.e_start,
         ep_end: form.e_end,
+        ep_location_is_address: isAddress,
       })
       if (!res.ok) return finishAdmin(res, admin, () => {}, setStatus)
       onPresetsChanged()
@@ -152,6 +157,7 @@ export function EventEditor({
         <TimeField label="End" value={form.e_end} onChange={(v) => set('e_end', v)} />
       </div>
       <TextField label="Location (house, restaurant…)" value={form.e_location} onChange={(v) => set('e_location', v)} />
+      <AddressCheck checked={isAddress} onChange={setIsAddress} />
       <TextField label="Description (optional)" multiline value={form.e_description} onChange={(v) => set('e_description', v)} />
 
       {sameDaySeries.length > 0 && (

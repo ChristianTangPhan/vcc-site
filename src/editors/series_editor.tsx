@@ -4,6 +4,7 @@ import { finishAdmin, sendAdmin } from '../lib/admin'
 import { dayNames } from '../lib/dates'
 import { TextField } from '../components/text_field'
 import { TimeField } from '../components/time_field'
+import { AddressCheck } from '../components/address_check'
 
 // Add or edit one weekly series (no series passed = adding a new one)
 export function SeriesEditor({
@@ -26,6 +27,7 @@ export function SeriesEditor({
     s_end: series ? (series.s_end?.slice(0, 5) ?? '') : '11:00',
   })
   const [showOnHome, setShowOnHome] = useState(series?.s_show_on_home ?? true)
+  const [isAddress, setIsAddress] = useState(series?.s_location_is_address ?? false)
   const [status, setStatus] = useState('')
 
   function set(key: keyof typeof form, value: string) {
@@ -44,6 +46,7 @@ export function SeriesEditor({
       ...form,
       s_day: Number(form.s_day),
       s_show_on_home: showOnHome,
+      s_location_is_address: isAddress,
     })
     await finishAdmin(res, admin, done, setStatus)
   }
@@ -72,6 +75,7 @@ export function SeriesEditor({
         <TimeField label="End" value={form.s_end} onChange={(v) => set('s_end', v)} />
       </div>
       <TextField label="Location" value={form.s_location} onChange={(v) => set('s_location', v)} />
+      <AddressCheck checked={isAddress} onChange={setIsAddress} />
       <TextField label="Description (optional)" multiline value={form.s_description} onChange={(v) => set('s_description', v)} />
       <label className="check">
         <input type="checkbox" checked={showOnHome} onChange={(e) => setShowOnHome(e.target.checked)} />

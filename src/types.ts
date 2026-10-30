@@ -16,6 +16,7 @@ export type Series = {
   s_name: string
   s_description: string | null
   s_location: string
+  s_location_is_address: boolean // show a map link
   s_day: number // 1 = Sunday ... 7 = Saturday
   s_start: string | null // null = no start time
   s_end: string | null   // null = no end time
@@ -35,6 +36,7 @@ export type EventRow = {
   e_name: string
   e_description: string | null
   e_location: string | null
+  e_location_is_address: boolean
   e_date: string // "2026-11-12"
   e_start: string | null
   e_end: string | null
@@ -46,6 +48,7 @@ export type Preset = {
   ep_name: string | null
   ep_description: string | null
   ep_location: string | null
+  ep_location_is_address: boolean
   ep_start: string | null
   ep_end: string | null
 }
@@ -71,6 +74,7 @@ export type CalItem = {
   dateKey: string // "2026-11-12"
   name: string
   location: string | null
+  locationIsAddress: boolean // show the location as a map link
   description: string | null
   start: string | null
   end: string | null

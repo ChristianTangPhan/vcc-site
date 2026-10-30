@@ -7,6 +7,7 @@ type Body = {
   ep_name?: string
   ep_description?: string
   ep_location?: string
+  ep_location_is_address?: boolean
   ep_start?: string
   ep_end?: string
 }
@@ -38,7 +39,8 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         ${b.ep_description ?? null},
         ${b.ep_location ?? null},
         ${orNull(b.ep_start)}::time,
-        ${orNull(b.ep_end)}::time
+        ${orNull(b.ep_end)}::time,
+        ${b.ep_location_is_address ?? false}::boolean
       ) AS id`
     return Response.json({ id: rows[0].id })
   } catch (err) {
@@ -74,7 +76,8 @@ export async function onRequestPut(context: { request: Request; env: Env }) {
         ${b.ep_description ?? null},
         ${b.ep_location ?? null},
         ${orNull(b.ep_start)}::time,
-        ${orNull(b.ep_end)}::time
+        ${orNull(b.ep_end)}::time,
+        ${b.ep_location_is_address ?? false}::boolean
       )`
     return Response.json({ ok: true })
   } catch (err) {

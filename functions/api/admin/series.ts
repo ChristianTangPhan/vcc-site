@@ -7,6 +7,7 @@ type Body = {
   s_name?: string
   s_description?: string
   s_location?: string
+  s_location_is_address?: boolean
   s_day?: number
   s_start?: string
   s_end?: string
@@ -35,7 +36,8 @@ export async function onRequestPost(context: { request: Request; env: Env }) {
         ${b.s_day ?? null}::int,
         ${timeOrNull(b.s_start)}::time,
         ${timeOrNull(b.s_end)}::time,
-        ${b.s_show_on_home ?? false}::boolean
+        ${b.s_show_on_home ?? false}::boolean,
+        ${b.s_location_is_address ?? false}::boolean
       ) AS id`
     return Response.json({ id: rows[0].id })
   } catch (err) {

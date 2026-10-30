@@ -4,6 +4,7 @@ import { finishAdmin, sendAdmin } from '../lib/admin'
 import { formatTimeRange } from '../lib/dates'
 import { TextField } from '../components/text_field'
 import { TimeField } from '../components/time_field'
+import { AddressCheck } from '../components/address_check'
 
 // Form to add or edit one preset (no preset passed = adding a new one)
 function PresetForm({
@@ -25,6 +26,7 @@ function PresetForm({
     ep_start: preset?.ep_start?.slice(0, 5) ?? '19:00',
     ep_end: preset?.ep_end?.slice(0, 5) ?? '20:00',
   })
+  const [isAddress, setIsAddress] = useState(preset?.ep_location_is_address ?? false)
   const [status, setStatus] = useState('')
 
   function set(key: keyof typeof form, value: string) {
@@ -39,8 +41,8 @@ function PresetForm({
 
     // Existing preset -> PUT (edit by id, allows renaming); new -> POST
     const res = preset
-      ? await sendAdmin(admin, '/api/admin/presets', 'PUT', { ep_id: preset.ep_id, ...form })
-      : await sendAdmin(admin, '/api/admin/presets', 'POST', form)
+      ? await sendAdmin(admin, '/api/admin/presets', 'PUT', { ep_id: preset.ep_id, ...form, ep_location_is_address: isAddress })
+      : await sendAdmin(admin, '/api/admin/presets', 'POST', { ...form, ep_location_is_address: isAddress })
 
     await finishAdmin(res, admin, onSaved, setStatus)
   }
@@ -54,6 +56,7 @@ function PresetForm({
         <TimeField label="End" value={form.ep_end} onChange={(v) => set('ep_end', v)} />
       </div>
       <TextField label="Location" value={form.ep_location} onChange={(v) => set('ep_location', v)} />
+      <AddressCheck checked={isAddress} onChange={setIsAddress} />
       <TextField label="Description (optional)" multiline value={form.ep_description} onChange={(v) => set('ep_description', v)} />
       <div className="admin-actions">
         <button type="submit">Save</button>
